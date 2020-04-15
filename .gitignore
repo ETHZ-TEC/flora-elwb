@@ -1,5 +1,6 @@
 # don't commit files which contain absolute (user dependent) paths
 .mxproject
+.settings/
 
 # drivers and FreeRTOS files
 /Drivers/
