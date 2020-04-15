@@ -1,0 +1,19 @@
+# don't commit files which contain absolute (user dependent) paths
+.mxproject
+
+# drivers and FreeRTOS files
+/Drivers/
+/Middlewares/
+
+# compiler artifacts
+/Debug/
+*.elf
+*.exe
+*.bin
+*.hex
+*.o
+
+# temp files
+*.scratch
+
+
