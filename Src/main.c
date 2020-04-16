@@ -1081,7 +1081,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   }
   /* USER CODE BEGIN Callback 1 */
   if (htim->Instance == TIM2) {
-    hs_timer_handle_overflow();
+    hs_timer_handle_overflow(htim);
   }
   /* USER CODE END Callback 1 */
 }

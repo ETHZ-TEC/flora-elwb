@@ -19,9 +19,8 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION                      00100 /* major [0-5], minor [0-99], patch [0-99] */
 #define FLOCKLAB                        0
-#define FLOCKLAB_SWD                    0     /* use SWD debugging together with FlockLab (pins LED1 and LED3 are not available for GPIO tracing since they are used for SWD) (useful only for FlockLab2) */
-#define USE_SWO                         0
-#define CLI_MODE                        0
+#define BASEBOARD                       0
+#define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
 #define LOW_POWER_MODE                  LP_MODE_SLEEP     /* low-power mode to use between rounds during periods of inactivity */
 
@@ -68,10 +67,10 @@
 #define LOG_ENABLE                      1
 #define LOG_LEVEL                       LOG_LEVEL_VERBOSE
 #define LOG_PRINT_IMMEDIATELY           0
-#if USE_SWO
+#if SWO_ENABLE
   #define LOG_PRINT_FUNC                swo_print
   #LOG_PRINT_IMMEDIATELY                1
-#endif
+#endif /* SWO_ENABLE */
 
 /* debugging */
 #define CPU_ON_IND()                    //PIN_SET(COM_GPIO1)  /* pin to indicate activity (e.g. to calculate the duty cycle) */
@@ -90,7 +89,7 @@
 
 /* --- parameter checks --- */
 
-#if FLOCKLAB && (BOLT_ENABLE || USE_SWO)
+#if FLOCKLAB && (BOLT_ENABLE || SWO_ENABLE)
 #error "invalid config"
 #endif
 
