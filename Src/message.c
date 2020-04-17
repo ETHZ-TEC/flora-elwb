@@ -36,10 +36,6 @@
 extern QueueHandle_t xQueueHandle_tx;
 extern QueueHandle_t xQueueHandle_rx;
 
-extern uint64_t unix_timestamp;
-extern uint64_t bolt_trq_timestamp;
-extern bool timestamp_updated;
-
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -194,9 +190,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
     /* message types only processed by the host */
     } else if (msg->header.type == DPP_MSG_TYPE_TIMESYNC) {
-      unix_timestamp     = msg->timestamp;
-      bolt_trq_timestamp = 0;     //TODO
-      timestamp_updated  = true;
+      set_unix_timestamp(msg->timestamp);
 
   #endif /* IS_HOST */
 

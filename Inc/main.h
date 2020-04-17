@@ -117,16 +117,20 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+
+void     set_unix_timestamp(uint64_t ts_us);
+uint64_t get_unix_timestamp(void);
+
 void prepare_lpm(void);
 void resume_from_lpm(void);
-void RTOS_Init(void);
+
+void     RTOS_Init(void);
 uint32_t RTOS_getDutyCycle(void);
 void     RTOS_resetDutyCycle(void);
-void debug_print(char* str);
-void debug_println(char* str);
-bool debug_task_queue_empty(void);
+
 bool swo_println(const char* str);
 bool swo_print(const char* str);
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

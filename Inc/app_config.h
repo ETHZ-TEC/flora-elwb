@@ -20,6 +20,7 @@
 #define FW_VERSION                      00100 /* major [0-5], minor [0-99], patch [0-99] */
 #define FLOCKLAB                        0
 #define BASEBOARD                       0
+#define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
 #define LOW_POWER_MODE                  LP_MODE_SLEEP     /* low-power mode to use between rounds during periods of inactivity */
@@ -42,9 +43,6 @@
 #define TIMESTAMP_MAX_DRIFT             5     /* max. allowed drift in seconds before the time is reset (jump) */
 #define NODE_HEALTH_MSG_PERIOD          300
 
-/* BOLT */
-#define BOLT_ENABLE                     (!FLOCKLAB)
-
 /* queue size */
 #define TRANSMIT_QUEUE_SIZE             20   /* #messages */
 #define RECEIVE_QUEUE_SIZE              20   /* #messages */
@@ -52,6 +50,9 @@
 /* Gloria config */
 #define GLORIA_INTERFACE_MODULATION     10   /* FSK 250kbit/s */
 #define GLORIA_INTERFACE_RF_BAND        40   /* 868 MHz (see table in radio_constants.c for options) */
+
+/* timer */
+#define HS_TIMER_COMPENSATE_DRIFT       0
 
 /* eLWB config */
 #define ELWB_ENABLE                     1

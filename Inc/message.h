@@ -33,8 +33,6 @@
 
 
 /* functions */
-uint64_t      get_unix_timestamp(void);
-void          send_timestamp(int64_t captured);
 void          send_node_health(void);
 void          send_node_info(void);
 uint_fast8_t  send_msg(uint16_t recipient,
