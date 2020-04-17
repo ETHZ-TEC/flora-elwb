@@ -104,29 +104,6 @@ void StartDefaultTask(void const * argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-bool swo_println(const char* str)
-{
-  while (*str)
-  {
-    ITM_SendChar(*str);
-    str++;
-  }
-  ITM_SendChar('\r');
-  ITM_SendChar('\n');
-
-  return true;
-}
-
-bool swo_print(const char* str)
-{
-  while (*str)
-  {
-    ITM_SendChar(*str);
-    str++;
-  }
-  return true;
-}
-
 /* USER CODE END 0 */
 
 /**
@@ -855,6 +832,7 @@ void prepare_lpm(void)
       led_off(LED_SYSTEM);
       PIN_CLR(COM_GPIO1);     /* has external pulldown */
 
+  #if BOLT_ENABLE
       /* configure BOLT TREQ in EXTI mode */
       GPIO_InitStruct.Pin = COM_TREQ_Pin;
       GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
@@ -862,6 +840,7 @@ void prepare_lpm(void)
       HAL_GPIO_Init(COM_TREQ_GPIO_Port, &GPIO_InitStruct);
       HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
       HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+  #endif /* BOLT_ENABLE */
 
       /* disable and clear unused interrupts */
       HAL_NVIC_DisableIRQ(USART1_IRQn);
@@ -998,9 +977,11 @@ void resume_from_lpm(void)
     __HAL_SPI_ENABLE(&hspi1);
     __HAL_SPI_ENABLE(&hspi2);
 
+  #if BOLT_ENABLE
     /* disable BOLT TREQ EXTI */
     HAL_NVIC_DisableIRQ(EXTI3_IRQn);
     __HAL_GPIO_EXTI_CLEAR_IT(COM_TREQ_Pin);
+  #endif /* BOLT_ENABLE */
 
     /* re-enable interrupts */
     HAL_NVIC_EnableIRQ(USART1_IRQn);

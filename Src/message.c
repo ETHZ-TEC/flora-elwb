@@ -52,7 +52,7 @@ uint_fast8_t send_msg(uint16_t recipient,
                       dpp_message_type_t type,
                       const uint8_t* data,
                       uint8_t len,
-                      uint8_t send_to_bolt)
+                      bool send_to_bolt)
 {
   /* separate sequence number for each interface */
   static uint16_t seq_no_lwb  = 0;
@@ -190,7 +190,8 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
     /* message types only processed by the host */
     } else if (msg->header.type == DPP_MSG_TYPE_TIMESYNC) {
-      set_unix_timestamp(msg->timestamp);
+      set_master_timestamp(msg->timestamp);
+      LOG_INFO("timestamp %llu received", msg->timestamp);
 
   #endif /* IS_HOST */
 
@@ -230,25 +231,22 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
   return 1;
 }
 
-void send_timestamp(int64_t captured)
+void send_timestamp(uint64_t trq_timestamp)
 {
   msg_buffer.timestamp = 0;
 
   /* timestamp request: calculate the timestamp and send it over BOLT */
   /* only send a timestamp if the node is connected to the eLWB */
-  uint64_t local_t_rx = 0;  /* in LF ticks */
-  uint64_t elwb_time_secs = elwb_get_time(&local_t_rx);
-  if (elwb_time_secs > 0) {
-    /* get elapsed time in LF ticks and convert it to us */
-    int64_t diff = ((int64_t)local_t_rx - captured) * 1000000 / LPTIMER_SECOND;
-    /* local t_rx is in clock ticks */
-    msg_buffer.timestamp = elwb_time_secs * 1000000 - diff;
-  }
+  uint64_t local_t_rx   = 0;
+  uint64_t network_time = 0;
+  elwb_get_time(&network_time, &local_t_rx);
+  /* get elapsed time in LF ticks and convert it to us */
+  int64_t diff = ((int64_t)local_t_rx - (int64_t)trq_timestamp) * 1000000 / LPTIMER_SECOND;
+  /* local t_rx is in clock ticks */
+  msg_buffer.timestamp = network_time - diff;
   /* send message over BOLT */
-  send_msg(NODE_ID, DPP_MSG_TYPE_TIMESYNC, 0, 0, 1);
-
-  LOG_INFO("timestamp sent: %llu", msg_buffer.timestamp);
-  captured = 0;
+  send_msg(NODE_ID, DPP_MSG_TYPE_TIMESYNC, 0, 0, true);
+  LOG_INFO("timestamp %llu sent", msg_buffer.timestamp);
 }
 
 void send_node_info(void)
@@ -283,7 +281,7 @@ void send_node_health(void)
   msg_buffer.com_health.core_vcc      = 0;    // TODO
   msg_buffer.com_health.uptime        = LPTIMER_NOW_SEC();
   msg_buffer.com_health.msg_cnt       = rcvd_msg_cnt;
-  rcvd_msg_cnt                    = 0;    /* reset value */
+  rcvd_msg_cnt                        = 0;    /* reset value */
   msg_buffer.com_health.stack         = 0;    // TODO get max stack size from FreeRTOS
 
   /* radio / communication stats */
@@ -296,8 +294,7 @@ void send_node_health(void)
   } else {
     msg_buffer.com_health.rx_cnt      = (stats->pkt_rcv - rx_cnt_last);
   }
-  rx_cnt_last                     = stats->pkt_rcv;
-                                    //glossy_get_n_pkts_crcok();
+  rx_cnt_last                         = stats->pkt_rcv;
   msg_buffer.com_health.tx_queue      = uxQueueMessagesWaiting(xQueueHandle_tx);
   msg_buffer.com_health.rx_queue      = uxQueueMessagesWaiting(xQueueHandle_rx);
   msg_buffer.com_health.tx_dropped    = stats->txbuf_drop - tx_dropped_last;

@@ -118,8 +118,8 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
-void     set_unix_timestamp(uint64_t ts_us);
-uint64_t get_unix_timestamp(void);
+void     set_master_timestamp(uint64_t ts_us);
+uint64_t get_master_timestamp(void);
 
 void prepare_lpm(void);
 void resume_from_lpm(void);
@@ -127,9 +127,6 @@ void resume_from_lpm(void);
 void     RTOS_Init(void);
 uint32_t RTOS_getDutyCycle(void);
 void     RTOS_resetDutyCycle(void);
-
-bool swo_println(const char* str);
-bool swo_print(const char* str);
 
 /* USER CODE END EFP */
 

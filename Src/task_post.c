@@ -68,14 +68,14 @@ void vTask_post(void const * argument)
 
     /* generate a node info message if necessary (must be here) */
     if (!node_info_sent) {
-      /* wait until the timestamp is valid */
-      if (elwb_get_time(0)) {
-        send_node_info();
-        node_info_sent = true;
-      }
+      send_node_info();
+      node_info_sent = true;
+
     } else if (health_msg_period) {
       /* only send other messages once the node info msg has been sent! */
-      uint32_t div = elwb_get_time(0) / health_msg_period;
+      uint64_t network_time;
+      elwb_get_time(&network_time, 0);
+      uint32_t div = (network_time / (1000000 * health_msg_period));
       if (div != last_health_pkt) {
         /* using a divider instead of the elapsed time will group the health
         * messages of all nodes together into one round */

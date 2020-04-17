@@ -17,13 +17,13 @@
 
 /* general */
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
-#define FW_VERSION                      00100 /* major [0-5], minor [0-99], patch [0-99] */
+#define FW_VERSION                      00100       /* major [0-5], minor [0-99], patch [0-99] */
 #define FLOCKLAB                        0
 #define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
-#define LOW_POWER_MODE                  LP_MODE_SLEEP     /* low-power mode to use between rounds during periods of inactivity */
+#define LOW_POWER_MODE                  LP_MODE_STOP2  /* low-power mode to use between rounds during periods of inactivity */
 
 /* RTOS */
 #define PRE_TASK_STACK_SIZE             (configMINIMAL_STACK_SIZE)  /* in # words of 4 bytes */
@@ -36,11 +36,13 @@
 #if FLOCKLAB
   #define NODE_ID                       FLOCKLAB_NODE_ID
 #else /* FLOCKLAB */
-  #define NODE_ID                       2
+  #define NODE_ID                       3
 #endif /* FLOCKLAB */
 #define IS_HOST                         (HOST_ID == NODE_ID)
 #define BOLT_TASK_MAX_READ_CNT          10    /* max. # messages that are read from BOLT in one period */
-#define TIMESTAMP_MAX_DRIFT             5     /* max. allowed drift in seconds before the time is reset (jump) */
+#define TIMESTAMP_TYPICAL_DRIFT         100   /* typical drift +/- in ppm (if exceeded, a warning will be issued) */
+#define TIMESTAMP_MAX_DRIFT             200   /* max. allowed drift in ppm (higher values will be capped) */
+#define TIMESTAMP_USE_HS_TIMER          0     /* use hs_timer for timestamping events on the TREQ pin */
 #define NODE_HEALTH_MSG_PERIOD          300
 
 /* queue size */

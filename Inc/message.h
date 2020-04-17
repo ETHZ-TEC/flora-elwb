@@ -35,11 +35,12 @@
 /* functions */
 void          send_node_health(void);
 void          send_node_info(void);
+void          send_timestamp(uint64_t trq_timestamp);
 uint_fast8_t  send_msg(uint16_t recipient,
                        dpp_message_type_t type,
                        const uint8_t* data,
                        uint8_t len,
-                       uint8_t send_to_bolt);
+                       bool send_to_bolt);
 uint_fast8_t  process_message(dpp_message_t* msg, bool rcvd_from_bolt);
 
 
