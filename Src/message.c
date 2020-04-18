@@ -191,7 +191,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
     /* message types only processed by the host */
     } else if (msg->header.type == DPP_MSG_TYPE_TIMESYNC) {
       set_master_timestamp(msg->timestamp);
-      LOG_INFO("timestamp %llu received", msg->timestamp);
+      LOG_VERBOSE("timestamp %llu received", msg->timestamp);
 
   #endif /* IS_HOST */
 

@@ -29,7 +29,6 @@ static uint8_t  bolt_read_buffer[BOLT_MAX_MSG_LEN];
 static uint64_t master_timestamp      = 0;
 static uint64_t bolt_trq_timestamp    = 0;
 static uint64_t bolt_trq_hs_timestamp = 0;
-static int32_t  average_drift         = 0;
 static bool     timestamp_updated     = false;
 static bool     timestamp_requested   = false;
 
@@ -77,6 +76,7 @@ void handle_trq(void)
 
 void update_time(void)
 {
+  static int32_t  average_drift         = 0;
   static uint64_t prev_trq_timestamp    = 0;
   static uint64_t prev_master_timestamp = 0;
 
@@ -104,6 +104,7 @@ void update_time(void)
       }
       /* note: a negative drift means the local time runs slower than the master clock */
       LOG_INFO("current drift: %ldppm, average drift: %ldppm", drift, average_drift);
+      elwb_set_drift(average_drift);
     }
 
     /* calculate the global time at the point where the next flood starts */
@@ -112,8 +113,28 @@ void update_time(void)
   #else /* TIMESTAMP_USE_HS_TIMER */
     uint64_t new_time_us = master_timestamp + (lptimer_get() - bolt_trq_timestamp) * 1000000 / LPTIMER_SECOND;
   #endif /* TIMESTAMP_USE_HS_TIMER */
+
+  #if TIMESTAMP_MAX_OFFSET_MS > 0
+    /* calculate the difference between the actual time and the current network time */
+    uint64_t curr_time_us = elwb_sched_get_time();
+    int32_t delta = (int64_t)curr_time_us - (int64_t)new_time_us;
+    if (delta > (TIMESTAMP_MAX_OFFSET_MS * 1000) || delta < -(TIMESTAMP_MAX_OFFSET_MS * 1000)) {
+      elwb_sched_set_time(new_time_us);
+      LOG_INFO("timestamp adjusted to %llu", new_time_us);
+    } else {
+      if (delta > 500) {
+        /* slow down the clock speed to compensate the offset */
+        elwb_set_drift(average_drift + 10);
+      } else if (delta < -500) {
+        /* speed up */
+        elwb_set_drift(average_drift - 10);
+      }
+      LOG_INFO("current time offset: %ldus", delta);
+    }
+  #else
+    /* adjust the network time */
     elwb_sched_set_time(new_time_us);
-    LOG_INFO("timestamp adjusted to %llu", new_time_us);
+  #endif /* TIMESTAMP_MAX_OFFSET_MS */
 
   #if TIMESTAMP_USE_HS_TIMER
     prev_trq_timestamp   = bolt_trq_hs_timestamp;
@@ -173,7 +194,6 @@ void vTask_pre(void const * argument)
       LOG_INFO("%lu msg read from BOLT, %lu forwarded",
                BOLT_TASK_MAX_READ_CNT - max_read_cnt, forwarded);
     }
-    LOG_VERBOSE_CONST("pre task executed");
 
     /* --- handle timestamp request --- */
 
@@ -187,6 +207,8 @@ void vTask_pre(void const * argument)
     } else {
       update_time();
     }
+
+    LOG_VERBOSE_CONST("pre task executed");
   }
 }
 
