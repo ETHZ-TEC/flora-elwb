@@ -157,11 +157,7 @@ void vTask_pre(void const * argument)
     FATAL_ERROR("invalid message size config");
   }
 
-  if (!bolt_init()) {
-    FATAL_ERROR("bolt_init failed!");
-  }
-
-  /* configure input capture for TIM2_CH4 (PA3) -> don't pass a callback function, we don't want an interrupt */
+  /* configure input capture for TIM2_CH4 (PA3) */
   HAL_TIM_IC_Start(&htim2, TIM_CHANNEL_4);
 
   /* Infinite loop */
@@ -173,7 +169,7 @@ void vTask_pre(void const * argument)
     PRE_TASK_RESUMED();
 
     /* read from BOLT */
-    uint32_t max_read_cnt = BOLT_TASK_MAX_READ_CNT,
+    uint32_t max_read_cnt = TRANSMIT_QUEUE_SIZE,
              forwarded = 0;
     /* only read as long as there is still space in the transmit queue */
     while (max_read_cnt && uxQueueSpacesAvailable(xQueueHandle_tx)) {
@@ -190,9 +186,8 @@ void vTask_pre(void const * argument)
       }
       max_read_cnt--;
     }
-    if (max_read_cnt < BOLT_TASK_MAX_READ_CNT) {
-      LOG_INFO("%lu msg read from BOLT, %lu forwarded",
-               BOLT_TASK_MAX_READ_CNT - max_read_cnt, forwarded);
+    if (max_read_cnt < TRANSMIT_QUEUE_SIZE) {
+      LOG_INFO("%lu msg read from BOLT, %lu forwarded", TRANSMIT_QUEUE_SIZE - max_read_cnt, forwarded);
     }
 
     /* --- handle timestamp request --- */

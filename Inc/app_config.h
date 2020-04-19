@@ -39,11 +39,13 @@
   #define NODE_ID                       HOST_ID
 #endif /* FLOCKLAB */
 #define IS_HOST                         (HOST_ID == NODE_ID)
-#define BOLT_TASK_MAX_READ_CNT          10    /* max. # messages that are read from BOLT in one period */
+
+/* time sync and drift compensation */
 #define TIMESTAMP_TYPICAL_DRIFT         100   /* typical drift +/- in ppm (if exceeded, a warning will be issued) */
 #define TIMESTAMP_MAX_DRIFT             150   /* max. allowed drift in ppm (higher values will be capped) */
 #define TIMESTAMP_MAX_OFFSET_MS         10    /* max. allowed offset in ms that the host tries to compensate; if larger, a jump in time occurs. set to 0 to always make a jump */
 #define TIMESTAMP_USE_HS_TIMER          0     /* use hs_timer for timestamping events on the TREQ pin */
+
 #define NODE_HEALTH_MSG_PERIOD          300
 
 /* queue size */

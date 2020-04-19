@@ -32,16 +32,60 @@
 #define __MESSAGE_H
 
 
-/* functions */
+/* --- definitions --- */
+
+#ifndef EVENT_MSG_ENABLE
+#define EVENT_MSG_ENABLE          0
+#endif /* EVENT_MSG_ENABLE */
+
+#ifndef EVENT_MSG_TARGET
+#define EVENT_MSG_TARGET          EVENT_MSG_TARGET_UART
+#endif /* EVENT_MSG_TARGET */
+
+/* default event message level */
+#ifndef EVENT_MSG_LEVEL
+#define EVENT_MSG_LEVEL           EVENT_MSG_LEVEL_INFO
+#endif /* EVENT_MSG_LVEL */
+
+
+/* --- typedefs --- */
+
+/* event notification level (equivalent to debug_level_t scale) */
+typedef enum {
+  EVENT_MSG_LEVEL_QUIET,      /* no notifications */
+  EVENT_MSG_LEVEL_ERROR,      /* report only errors */
+  EVENT_MSG_LEVEL_WARNING,    /* report warnings and errors */
+  EVENT_MSG_LEVEL_INFO,       /* report information, warnings and errors */
+  EVENT_MSG_LEVEL_VERBOSE,    /* report all */
+  NUM_EVENT_MSG_LEVELS,
+} event_msg_level_t;
+
+typedef enum {
+  EVENT_MSG_TARGET_NONE,
+  EVENT_MSG_TARGET_UART,
+  EVENT_MSG_TARGET_BOLT,
+  EVENT_MSG_TARGET_NETWORK,
+} event_msg_target_t;
+
+
+/* --- macros --- */
+
+#define EVENT_INFO(evt, val)      send_event(EVENT_MSG_LEVEL_INFO, evt, val)
+#define EVENT_WARNING(evt, val)   send_event(EVENT_MSG_LEVEL_WARNING, evt, val)
+#define EVENT_ERROR(evt, val)     send_event(EVENT_MSG_LEVEL_ERROR, evt, val)
+#define EVENT_VERBOSE(evt, val)   send_event(EVENT_MSG_LEVEL_VERBOSE, evt, val)
+
+
+/* --- function prototypes --- */
+
+uint_fast8_t  process_message(dpp_message_t* msg, bool rcvd_from_bolt);
 void          send_node_health(void);
 void          send_node_info(void);
 void          send_timestamp(uint64_t trq_timestamp);
-uint_fast8_t  send_msg(uint16_t recipient,
-                       dpp_message_type_t type,
-                       const uint8_t* data,
-                       uint8_t len,
-                       bool send_to_bolt);
-uint_fast8_t  process_message(dpp_message_t* msg, bool rcvd_from_bolt);
+uint_fast8_t  send_msg(uint16_t recipient, dpp_message_type_t type, const uint8_t* data, uint8_t len, bool send_to_bolt);
+void          send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val);
+void          set_event_level(event_msg_level_t level);
+void          set_event_target(event_msg_target_t target);
 
 
 #endif /* __MESSAGE_H */

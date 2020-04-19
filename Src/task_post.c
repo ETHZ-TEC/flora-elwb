@@ -74,7 +74,7 @@ void vTask_post(void const * argument)
     } else if (health_msg_period) {
       /* only send other messages once the node info msg has been sent! */
       uint64_t network_time;
-      elwb_get_time(&network_time, 0);
+      elwb_get_last_syncpoint(&network_time, 0);
       uint32_t div = (network_time / (1000000 * health_msg_period));
       if (div != last_health_pkt) {
         /* using a divider instead of the elapsed time will group the health

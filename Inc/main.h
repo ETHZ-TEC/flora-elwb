@@ -40,7 +40,6 @@ extern "C" {
 #include "cmsis_os.h"
 
 /* project files */
-#include "event.h"
 #include "message.h"
 
 /* USER CODE END Includes */

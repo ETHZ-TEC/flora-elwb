@@ -1,34 +1,11 @@
 /*
- * Copyright (c) 2018, Swiss Federal Institute of Technology (ETH Zurich).
- * All rights reserved.
+ * message.c
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
- * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
+ *  Created on: Apr 7, 2020
+ *      Author: rdaforno
  */
 
-/* functions related to DPP messages */
+/* functions related to DPP message handling */
 
 #include "main.h"
 
@@ -39,8 +16,10 @@ extern QueueHandle_t xQueueHandle_rx;
 
 /* Private variables ---------------------------------------------------------*/
 
-static dpp_message_t msg_buffer;
-static uint16_t      rcvd_msg_cnt = 0;
+static dpp_message_t      msg_buffer;
+static uint16_t           rcvd_msg_cnt     = 0;
+static event_msg_level_t  event_msg_level  = EVENT_MSG_LEVEL;
+static event_msg_target_t event_msg_target = EVENT_MSG_TARGET;
 
 
 /* Functions -----------------------------------------------------------------*/
@@ -91,7 +70,7 @@ uint_fast8_t send_msg(uint16_t recipient,
   } else {
     msg_buffer.header.seqnr = seq_no_lwb++;
   }
-  msg_buffer.header.generation_time = elwb_get_timestamp();
+  msg_buffer.header.generation_time = elwb_get_time(0);
 
   /* copy the payload if valid */
   if (msg_buffer.header.payload_len && data) {
@@ -180,7 +159,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
       if (successful) {
         LOG_INFO("cmd %u processed", msg->cmd.type);
         //uint32_t val = (((uint32_t)arg1) << 16 | msg->cmd.type);
-        EVENT_INFO(EVENT_CC430_CFG_CHANGED, val);
+        //EVENT_INFO(EVENT_CC430_CFG_CHANGED, val);
         /* if necessary, store the new config in the flash memory */
         if (cfg_changed) {
           //nvcfg_save(&cfg);   TODO
@@ -233,18 +212,8 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
 void send_timestamp(uint64_t trq_timestamp)
 {
-  msg_buffer.timestamp = 0;
-
   /* timestamp request: calculate the timestamp and send it over BOLT */
-  /* only send a timestamp if the node is connected to the eLWB */
-  uint64_t local_t_rx   = 0;
-  uint64_t network_time = 0;
-  elwb_get_time(&network_time, &local_t_rx);
-  /* get elapsed time in LF ticks and convert it to us */
-  int64_t diff = ((int64_t)local_t_rx - (int64_t)trq_timestamp) * 1000000 / LPTIMER_SECOND;
-  /* local t_rx is in clock ticks */
-  msg_buffer.timestamp = network_time - diff;
-  /* send message over BOLT */
+  msg_buffer.timestamp = elwb_get_time(&trq_timestamp);
   send_msg(NODE_ID, DPP_MSG_TYPE_TIMESYNC, 0, 0, true);
   LOG_INFO("timestamp %llu sent", msg_buffer.timestamp);
 }
@@ -312,5 +281,46 @@ void send_node_health(void)
   send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_COM_HEALTH, 0, 0, IS_HOST);
 
   LOG_INFO_CONST("health msg generated");
+}
+
+void send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val)
+{
+  if (event_msg_level < level) {
+    return;
+  }
+  if (event_msg_target == EVENT_MSG_TARGET_UART) {
+    if (level == EVENT_MSG_LEVEL_INFO) {
+      LOG_INFO("event 0x%02x occurred (value: 0x%02lx)", type, val);
+    } else if (level == EVENT_MSG_LEVEL_WARNING) {
+      LOG_WARNING("event 0x%02x occurred (value: 0x%02lx)", type, val);
+    } else if (level == EVENT_MSG_LEVEL_ERROR) {
+      LOG_ERROR("event 0x%02x occurred (value: 0x%02lx)", type, val);
+    } else if (level == EVENT_MSG_LEVEL_VERBOSE) {
+      LOG_VERBOSE("event 0x%02x occurred (value: 0x%02lx)", type, val);
+    }
+  } else {
+    dpp_event_t event;
+    event.type = type;
+    event.value = val;
+    if (event_msg_target == EVENT_MSG_TARGET_BOLT) {
+      send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, true);
+      LOG_VERBOSE_CONST("event msg sent to BOLT");
+    } else if (event_msg_target == EVENT_MSG_TARGET_NETWORK) {
+      send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, false);
+      LOG_VERBOSE_CONST("event msg sent to LWB");
+    } else {
+      LOG_WARNING_CONST("invalid event target");
+    }
+  }
+}
+
+void set_event_level(event_msg_level_t level)
+{
+  event_msg_level = level;
+}
+
+void set_event_target(event_msg_target_t target)
+{
+  event_msg_target = target;
 }
 
