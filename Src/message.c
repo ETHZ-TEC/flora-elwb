@@ -239,8 +239,7 @@ void send_node_info(void)
 
 void send_node_health(void)
 {
-  static uint8_t  tx_dropped_last = 0,
-                  rx_dropped_last = 0;
+  static uint8_t  rx_dropped_last = 0;
   static uint16_t rx_cnt_last     = 0;
 
   const elwb_stats_t* stats = elwb_get_stats();
@@ -258,18 +257,17 @@ void send_node_health(void)
   msg_buffer.com_health.radio_rssi    = 0;    // TODO
   msg_buffer.com_health.radio_tx_pwr  = 0;    // TODO
   msg_buffer.com_health.radio_per     = 0;    // TODO
-  if (rx_cnt_last > stats->pkt_rcv) {
-    msg_buffer.com_health.rx_cnt      = (65535 - rx_cnt_last) + stats->pkt_rcv;
+  if (rx_cnt_last > stats->pkt_rcvd) {
+    msg_buffer.com_health.rx_cnt      = (65535 - rx_cnt_last) + stats->pkt_rcvd;
   } else {
-    msg_buffer.com_health.rx_cnt      = (stats->pkt_rcv - rx_cnt_last);
+    msg_buffer.com_health.rx_cnt      = (stats->pkt_rcvd - rx_cnt_last);
   }
-  rx_cnt_last                         = stats->pkt_rcv;
+  rx_cnt_last                         = stats->pkt_rcvd;
   msg_buffer.com_health.tx_queue      = uxQueueMessagesWaiting(xQueueHandle_tx);
   msg_buffer.com_health.rx_queue      = uxQueueMessagesWaiting(xQueueHandle_rx);
-  msg_buffer.com_health.tx_dropped    = stats->txbuf_drop - tx_dropped_last;
-  tx_dropped_last = stats->txbuf_drop;
-  msg_buffer.com_health.rx_dropped    = stats->rxbuf_drop - rx_dropped_last;
-  rx_dropped_last = stats->rxbuf_drop;
+  msg_buffer.com_health.tx_dropped    = 0;    // TODO
+  msg_buffer.com_health.rx_dropped    = stats->pkt_dropped - rx_dropped_last;
+  rx_dropped_last = stats->pkt_dropped;
 
   /* duty cycle */
   msg_buffer.com_health.cpu_dc        = RTOS_getDutyCycle();

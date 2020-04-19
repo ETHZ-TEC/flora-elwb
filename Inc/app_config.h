@@ -68,6 +68,7 @@
 #define ELWB_ON_WAKEUP()                op_mode = op_mode_sm[op_mode][OP_MODE_EVT_WAKEUP]; resume_from_lpm()
 #define ELWB_RESUMED()                  PIN_SET(COM_GPIO1)
 #define ELWB_SUSPENDED()                PIN_CLR(COM_GPIO1)
+#define ELWB_IS_HOST()                  IS_HOST
 
 /* logging */
 #define LOG_ENABLE                      1

@@ -172,13 +172,11 @@ void vTask_pre(void const * argument)
     uint32_t max_read_cnt = TRANSMIT_QUEUE_SIZE,
              forwarded = 0;
     /* only read as long as there is still space in the transmit queue */
-    while (max_read_cnt && uxQueueSpacesAvailable(xQueueHandle_tx)) {
+    while (max_read_cnt && uxQueueSpacesAvailable(xQueueHandle_tx) && BOLT_DATA_AVAILABLE) {
       uint32_t len = bolt_read(bolt_read_buffer);
       if (!len) {
-        if (BOLT_DATA_AVAILABLE) {
-          LOG_ERROR_CONST("bolt read failed");
-          EVENT_ERROR(EVENT_CC430_BOLT_ERROR, 0);
-        }
+        LOG_ERROR_CONST("bolt read failed");
+        EVENT_ERROR(EVENT_CC430_BOLT_ERROR, 0);
         break;
       }
       if (!process_message((dpp_message_t*)bolt_read_buffer, true)) {
