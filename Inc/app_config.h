@@ -65,7 +65,7 @@
 #define ELWB_CONF_T_SCHED               (ELWB_TIMER_SECOND / 50)      /* 20ms */
 #define ELWB_CONF_T_DATA                (ELWB_TIMER_SECOND / 50)      /* 20ms */
 #define ELWB_CONF_T_CONT                (ELWB_TIMER_SECOND / 100)     /* 10ms */
-#define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP); lpm_resume()
+#define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_RESUMED()                  PIN_SET(COM_GPIO1)
 #define ELWB_SUSPENDED()                PIN_CLR(COM_GPIO1)
 #define ELWB_IS_HOST()                  IS_HOST

@@ -127,8 +127,6 @@ int main(void)
 
   /* initialize state machine for handling low-power modes */
   update_opmode(OP_MODE_EVT_INIT);
-  /* disable PC13 (RF_DIO1) interrupt (only needed for wakeup from LPM) */
-  HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
 
   /* USER CODE END 2 */
 

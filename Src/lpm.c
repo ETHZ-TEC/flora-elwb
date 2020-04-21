@@ -27,6 +27,8 @@ extern SPI_HandleTypeDef   hspi1;
 extern SPI_HandleTypeDef   hspi2;
 extern UART_HandleTypeDef  huart1;
 
+extern void SystemClock_Config(void);        /* defined in main.c */
+
 
 /* --- private variables --- */
 
@@ -45,12 +47,7 @@ static const op_mode_t op_mode_state_machine[NUM_OP_MODES][NUM_OP_MODE_EVENTS] =
 static lp_mode_t lp_mode = LOW_POWER_MODE;    /* selected low-power mode */
 
 
-/* --- function prototypes --- */
-
-void SystemClock_Config(void);        // defined in main.c
-
-
-/* --- function --- */
+/* --- functions --- */
 
 op_mode_t get_opmode(void)
 {
@@ -60,6 +57,11 @@ op_mode_t get_opmode(void)
 void update_opmode(op_mode_event_t evt)
 {
   op_mode = op_mode_state_machine[op_mode][evt];
+
+  /* wakeup event? -> automatically resume from lpm */
+  if (evt == OP_MODE_EVT_WAKEUP) {
+    lpm_resume();
+  }
 }
 
 /* prepare the MCU for low power mode */
