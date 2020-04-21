@@ -53,21 +53,21 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-/* RTOS Task Handles ---------------------------------------------------------*/
-TaskHandle_t xTaskHandle_pre = NULL;
-TaskHandle_t xTaskHandle_com = NULL;
+
+/* RTOS Task Handles */
+TaskHandle_t xTaskHandle_pre  = NULL;
+TaskHandle_t xTaskHandle_com  = NULL;
 TaskHandle_t xTaskHandle_post = NULL;
 TaskHandle_t xTaskHandle_idle = NULL;
-/* RTOS Queue Handles --------------------------------------------------------*/
+/* RTOS Queue Handles */
 QueueHandle_t xQueueHandle_tx = NULL;
 QueueHandle_t xQueueHandle_rx = NULL;
 /* Variables */
-bool round_finished = false;
-uint64_t active_time = 0;
+bool     round_finished   = false;
+uint64_t active_time      = 0;
 uint64_t wakeup_timestamp = 0;
-uint64_t last_reset = 0;
+uint64_t last_reset       = 0;
 
-extern TIM_HandleTypeDef        htim1;
 /* USER CODE END Variables */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -108,7 +108,7 @@ void vApplicationIdleHook( void )
   }
 
   /* if the application ends up in the RESET state, something went wrong -> reset the MCU */
-  if (op_mode == OP_MODE_RESET) {
+  if (get_opmode() == OP_MODE_RESET) {
     NVIC_SystemReset();
   }
 
@@ -151,7 +151,7 @@ void PreSleepProcessing(uint32_t *ulExpectedIdleTime)
 {
   /* note: for tickless idle, the HAL tick needs to be suspended! */
   HAL_SuspendTick();
-  prepare_lpm();
+  lpm_prepare();
 
   /* duty cycle measurement */
   active_time += lptimer_now() - wakeup_timestamp;
@@ -163,7 +163,7 @@ void PostSleepProcessing(uint32_t *ulExpectedIdleTime)
   CPU_ON_IND();
   wakeup_timestamp = lptimer_now();    /* reset duty cycle timer */
 
-  resume_from_lpm();
+  lpm_resume();
   HAL_ResumeTick();
 }
 /* USER CODE END PREPOSTSLEEP */
@@ -171,7 +171,7 @@ void PostSleepProcessing(uint32_t *ulExpectedIdleTime)
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 /* RTOS functions ------------------------------------------------------------*/
-void RTOS_Init(void)
+void rtos_init(void)
 {
   /* create RTOS queues */
   xQueueHandle_rx = xQueueCreate(RECEIVE_QUEUE_SIZE, DPP_MSG_PKT_LEN);
@@ -207,12 +207,12 @@ void RTOS_Init(void)
                   &xTaskHandle_com) != pdPASS)     { Error_Handler(); }
 }
 
-uint32_t RTOS_getDutyCycle(void)
+uint32_t rtos_get_cpu_dc(void)
 {
   return (uint32_t)((active_time * 10000) / (lptimer_now() - last_reset));
 }
 
-void RTOS_resetDutyCycle(void)
+void rtos_reset_cpu_dc(void)
 {
   last_reset = lptimer_now();
   active_time = 0;

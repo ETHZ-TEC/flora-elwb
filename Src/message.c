@@ -270,8 +270,8 @@ void send_node_health(void)
   rx_dropped_last = stats->pkt_dropped;
 
   /* duty cycle */
-  msg_buffer.com_health.cpu_dc        = RTOS_getDutyCycle();
-  RTOS_resetDutyCycle();
+  msg_buffer.com_health.cpu_dc        = rtos_get_cpu_dc();
+  rtos_reset_cpu_dc();
   msg_buffer.com_health.radio_rx_dc   = 0;    // TODO
   msg_buffer.com_health.radio_tx_dc   = 0;    // TODO
 

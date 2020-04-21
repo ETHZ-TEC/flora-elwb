@@ -46,6 +46,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+
 typedef enum
 {
   OP_MODE_RESET,            /* initial state after a reset */
@@ -80,10 +81,11 @@ typedef enum
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-extern SPI_HandleTypeDef    hspi1;
-extern const op_mode_t      op_mode_sm[NUM_OP_MODES][NUM_OP_MODE_EVENTS];
-extern op_mode_t            op_mode;
-extern lp_mode_t            lp_mode;
+
+#if BOLT_ENABLE
+extern SPI_HandleTypeDef hspi1;
+#endif /* BOLT_ENABLE */
+
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -117,15 +119,18 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
-void     set_master_timestamp(uint64_t ts_us);
-uint64_t get_master_timestamp(void);
+op_mode_t get_opmode(void);                     /* get application state (operating mode) */
+void      update_opmode(op_mode_event_t evt);   /* update application state (operating mode) */
 
-void prepare_lpm(void);
-void resume_from_lpm(void);
+void      set_master_timestamp(uint64_t ts_us);
+uint64_t  get_master_timestamp(void);
 
-void     RTOS_Init(void);
-uint32_t RTOS_getDutyCycle(void);
-void     RTOS_resetDutyCycle(void);
+void      lpm_prepare(void);
+void      lpm_resume(void);
+
+void      rtos_init(void);
+uint32_t  rtos_get_cpu_dc(void);     /* get duty cycle */
+void      rtos_reset_cpu_dc(void);   /* reset duty cycle */
 
 /* USER CODE END EFP */
 

@@ -128,7 +128,7 @@ void vTask_post(void const * argument)
     }
 
     /* print some stats */
-    LOG_INFO("CPU duty cycle: %u%%", (uint16_t)RTOS_getDutyCycle() / 100);
+    LOG_INFO("CPU duty cycle: %u%%", (uint16_t)rtos_get_cpu_dc() / 100);
     LOG_VERBOSE_CONST("post task executed");
 
     /* flush the log print queue */
@@ -141,6 +141,6 @@ void vTask_post(void const * argument)
     }
 
     /* round finished, prepare for low-power mode */
-    op_mode = op_mode_sm[op_mode][OP_MODE_EVT_DONE];
+    update_opmode(OP_MODE_EVT_DONE);
   }
 }
