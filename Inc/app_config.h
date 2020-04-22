@@ -17,7 +17,10 @@
 
 /* general */
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
-#define FW_VERSION                      00100       /* major [0-5], minor [0-99], patch [0-99] */
+#define FW_VERSION_MAJOR                0
+#define FW_VERSION_MINOR                2
+#define FW_VERSION_PATCH                0
+#define FW_VERSION                      (uint16_t)(FW_VERSION_MAJOR * 10000 + FW_VERSION_MINOR * 100 + FW_VERSION_PATCH)
 #define FLOCKLAB                        0
 #define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
@@ -36,7 +39,7 @@
 #if FLOCKLAB
   #define NODE_ID                       FLOCKLAB_NODE_ID
 #else /* FLOCKLAB */
-  #define NODE_ID                       HOST_ID
+  #define NODE_ID                       3 //HOST_ID
 #endif /* FLOCKLAB */
 #define IS_HOST                         (HOST_ID == NODE_ID)
 
@@ -49,12 +52,13 @@
 #define NODE_HEALTH_MSG_PERIOD          300
 
 /* queue size */
-#define TRANSMIT_QUEUE_SIZE             20   /* #messages */
-#define RECEIVE_QUEUE_SIZE              20   /* #messages */
+#define TRANSMIT_QUEUE_SIZE             20                          /* #messages */
+#define RECEIVE_QUEUE_SIZE              ELWB_CONF_MAX_DATA_SLOTS    /* #messages */
 
 /* Gloria config */
 #define GLORIA_INTERFACE_MODULATION     10   /* FSK 250kbit/s */
 #define GLORIA_INTERFACE_RF_BAND        40   /* 868 MHz (see table in radio_constants.c for options) */
+#define GLORIA_RADIO_SLEEP              0    /* don't use radio sleep */
 
 /* timer */
 #define HS_TIMER_COMPENSATE_DRIFT       0
@@ -76,7 +80,7 @@
 #define LOG_PRINT_IMMEDIATELY           0
 #if SWO_ENABLE
   #define LOG_PRINT_FUNC                swo_print
-  #LOG_PRINT_IMMEDIATELY                1
+  //#define LOG_PRINT_IMMEDIATELY         1
 #endif /* SWO_ENABLE */
 
 /* debugging */
@@ -96,16 +100,9 @@
 
 /* --- parameter checks --- */
 
-#if FLOCKLAB && (BOLT_ENABLE || SWO_ENABLE)
-#error "invalid config"
-#endif
-
-#if BOLT_MAX_MSG_LEN < DPP_MSG_PKT_LEN
+#if BOLT_ENABLE && (BOLT_MAX_MSG_LEN < DPP_MSG_PKT_LEN)
 #error "BOLT_MAX_MSG_LEN is too small"
 #endif
 
-#if BOLT_ENABLE && FLOCKLAB
-#error "BOLT is not supported on FlockLab"
-#endif
 
 #endif /* __APP_CONFIG_H */

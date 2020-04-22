@@ -232,7 +232,7 @@ void send_node_info(void)
   memcpy(msg_buffer.node_info.fw_name, FW_NAME, MIN(8, strlen(FW_NAME)));
   memcpy(msg_buffer.node_info.mcu_desc, "STM32L433CC", MIN(12, strlen("STM32L433CC")));
 
-  LOG_INFO("node info msg generated");
+  LOG_INFO_CONST("node info msg generated");
   /* note: host sends message towards BOLT */
   send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_NODE_INFO, 0, 0, IS_HOST);
 }

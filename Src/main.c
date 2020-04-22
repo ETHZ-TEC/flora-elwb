@@ -123,6 +123,12 @@ int main(void)
   MX_LPTIM1_Init();
   /* USER CODE BEGIN 2 */
 
+  /* print firmware and compiler info as well as the node ID */
+  LOG_INFO("firmware: %s v%u.%u.%u", FW_NAME, FW_VERSION_MAJOR, FW_VERSION_MINOR, FW_VERSION_PATCH);
+  LOG_INFO("compiler version: %s", __VERSION__);
+  LOG_INFO("compile date: %s", __TIMESTAMP__);
+  LOG_INFO("node ID: %u", NODE_ID);
+
   system_init();
 
   /* initialize state machine for handling low-power modes */
