@@ -36,12 +36,9 @@
 
 /* network parameters */
 #define HOST_ID                         2
-#if FLOCKLAB
-  #define NODE_ID                       FLOCKLAB_NODE_ID
-#else /* FLOCKLAB */
-  #define NODE_ID                       3 //HOST_ID
+#if !FLOCKLAB
+  #define NODE_ID                       HOST_ID
 #endif /* FLOCKLAB */
-#define IS_HOST                         (HOST_ID == NODE_ID)
 
 /* time sync and drift compensation */
 #define TIMESTAMP_TYPICAL_DRIFT         100   /* typical drift +/- in ppm (if exceeded, a warning will be issued) */

@@ -83,11 +83,13 @@ uint_fast8_t send_msg(uint16_t recipient,
 
   /* forward the message either to BOLT or the eLWB */
   if (send_to_bolt) {
+#if BOLT_ENABLE
     if (bolt_write((uint8_t*)&msg_buffer, msg_buffer_len)) {
       LOG_VERBOSE_CONST("msg written to BOLT");
       return 1;
     }
     LOG_INFO_CONST("msg dropped (BOLT queue full)");
+#endif /* BOLT_ENABLE */
   } else {
     if (xQueueSend(xQueueHandle_tx, &msg_buffer, 0)) {
       LOG_VERBOSE_CONST("msg added to transmit queue");
@@ -198,12 +200,14 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         LOG_VERBOSE("msg forwarded to network (type: %u, dest: %u)", msg->header.type, msg->header.target_id);
       }
     } else {
+#if BOLT_ENABLE
       /* forward to BOLT */
       if (!bolt_write((uint8_t*)msg, msg_len)) {
         LOG_ERROR("failed to write message to BOLT");
       } else {
         LOG_VERBOSE("msg forwarded to BOLT (type: %u, len: %uB)", msg->header.type, msg_len);
       }
+#endif /* BOLT_ENABLE */
     }
     return 0;
   }

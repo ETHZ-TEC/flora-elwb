@@ -124,7 +124,6 @@ void lpm_prepare(void)
       if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) { Error_Handler(); }
 
       /* configure unused GPIOs for minimal current drain (make sure there are no floating inputs) */
-      GPIO_InitTypeDef GPIO_InitStruct = {0}; // this is used further down!
       // NOTE1: Not necessary at the moment since pins are either not used or by default already configured as input
       // NOTE2: For some constellation the analog mode causes a higher power consumpton than leaving it configured as input
       // NOTE3: restore of RADIO_DIO1_Pin breaks wakeup from LPM, reason unknown (PA15 is connected to PC13 in hardware on the COM board)
@@ -154,6 +153,7 @@ void lpm_prepare(void)
       PIN_CLR(COM_GPIO1);     /* has external pulldown */
 
   #if BOLT_ENABLE
+      GPIO_InitTypeDef GPIO_InitStruct = {0};
       /* configure BOLT TREQ in EXTI mode */
       GPIO_InitStruct.Pin = COM_TREQ_Pin;
       GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
