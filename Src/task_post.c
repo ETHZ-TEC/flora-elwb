@@ -46,6 +46,9 @@ void vTask_post(void const * argument)
 
   LOG_INFO_CONST("Post task started");
 
+  /* create FIFO queue for scheduled commands */
+  //FIFO_CREATE(cmd_fifo, sizeof(sched_cmd_t), 10);
+
   /* Infinite loop */
   for(;;)
   {

@@ -67,6 +67,11 @@ typedef enum {
   EVENT_MSG_TARGET_NETWORK,
 } event_msg_target_t;
 
+typedef struct {
+  dpp_command_type_t  cmd;
+  uint32_t            scheduled_time;
+} sched_cmd_t;
+
 
 /* --- macros --- */
 

@@ -176,7 +176,6 @@ void vTask_pre(void const * argument)
       uint32_t len = bolt_read(bolt_read_buffer);
       if (!len) {
         LOG_ERROR_CONST("bolt read failed");
-        EVENT_ERROR(EVENT_CC430_BOLT_ERROR, 0);
         break;
       }
       if (!process_message((dpp_message_t*)bolt_read_buffer, true)) {

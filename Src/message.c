@@ -40,7 +40,7 @@ uint_fast8_t send_msg(uint16_t recipient,
   /* check message length */
   if (len > DPP_MSG_PAYLOAD_LEN) {
     LOG_WARNING_CONST("invalid message length");
-    EVENT_WARNING(EVENT_CC430_INV_MSG, ((uint32_t)type) << 16 | 0xff00 | len);
+    //EVENT_WARNING(EVENT_CC430_INV_MSG, ((uint32_t)type) << 16 | 0xff00 | len);
     return 0;
   }
 
@@ -112,7 +112,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
       msg->header.payload_len == 0 ||
       DPP_MSG_GET_CRC16(msg) != crc16((uint8_t*)msg, msg_len - 2, 0)) {
     LOG_ERROR("msg with invalid length or CRC (%ub, type %u)", msg_len, msg->header.type);
-    EVENT_WARNING(EVENT_CC430_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
+    //EVENT_WARNING(EVENT_CC430_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
     return 1;
   }
   LOG_VERBOSE("msg type: %u, src: %u, len: %uB", msg->header.type, msg->header.device_id, msg_len);
@@ -130,7 +130,6 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
       switch(msg->cmd.type) {
       case DPP_COMMAND_RESET:
-      case CMD_CC430_RESET:
         if (IS_HOST) {
           // only reset if message is not a broadcast message
           if (!forward) {
@@ -181,7 +180,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
       if (!IS_HOST) {
         forward = 1;    /* source nodes forward messages */
-        EVENT_WARNING(EVENT_CC430_MSG_IGNORED, msg->header.type);
+        //EVENT_WARNING(EVENT_CC430_MSG_IGNORED, msg->header.type);
       }
     }
 
@@ -228,7 +227,7 @@ void send_node_info(void)
   msg_buffer.node_info.component_id = DPP_COMPONENT_ID_SX1262;
   msg_buffer.node_info.compiler_ver = (__GNUC__ * 1000000 + __GNUC_MINOR__ * 1000 + __GNUC_PATCHLEVEL__);
   msg_buffer.node_info.compile_date = 0;    // TODO
-  msg_buffer.node_info.fw_ver       = FW_VERSION;
+  msg_buffer.node_info.fw_ver       = (uint16_t)(FW_VERSION_MAJOR * 10000 + FW_VERSION_MINOR * 100 + FW_VERSION_PATCH);
   msg_buffer.node_info.rst_cnt      = 0;    // TODO
   msg_buffer.node_info.rst_flag     = 0;    // TODO
   msg_buffer.node_info.sw_rev_id    = 0;    // TODO   hexstr_to_uint32(GIT_HEADREV_SHA);
