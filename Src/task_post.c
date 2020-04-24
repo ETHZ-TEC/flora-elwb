@@ -46,9 +46,6 @@ void vTask_post(void const * argument)
 
   LOG_INFO_CONST("Post task started");
 
-  /* create FIFO queue for scheduled commands */
-  //FIFO_CREATE(cmd_fifo, sizeof(sched_cmd_t), 10);
-
   /* Infinite loop */
   for(;;)
   {
@@ -86,6 +83,9 @@ void vTask_post(void const * argument)
         last_health_pkt = div;
       }
     }
+
+    /* process pending commands */
+    process_commands();
 
     /* check stack watermarks (store the used words) */
     unsigned long idleSWM = configMINIMAL_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_idle));

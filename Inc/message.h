@@ -68,9 +68,10 @@ typedef enum {
 } event_msg_target_t;
 
 typedef struct {
-  dpp_command_type_t  cmd;
+  dpp_command_type_t  type;
+  uint16_t            arg;
   uint32_t            scheduled_time;
-} sched_cmd_t;
+} scheduled_cmd_t;
 
 
 /* --- macros --- */
@@ -84,6 +85,7 @@ typedef struct {
 /* --- function prototypes --- */
 
 uint_fast8_t  process_message(dpp_message_t* msg, bool rcvd_from_bolt);
+void          process_commands(void);     /* process pending commands */
 void          send_node_health(void);
 void          send_node_info(void);
 void          send_timestamp(uint64_t trq_timestamp);

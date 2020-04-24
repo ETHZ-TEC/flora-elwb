@@ -124,6 +124,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* print firmware and compiler info as well as the node ID */
+  LOG_RAW(LOG_NEWLINE);
   LOG_INFO("firmware: %s v%u.%u.%u", FW_NAME, FW_VERSION_MAJOR, FW_VERSION_MINOR, FW_VERSION_PATCH);
   LOG_INFO("compiler version: %s", __VERSION__);
   LOG_INFO("compile date: %s", __TIMESTAMP__);

@@ -53,7 +53,7 @@ uint64_t get_master_timestamp(void)
 
 void GPIO_PIN_3_Callback(void)
 {
-  bolt_trq_timestamp  = lptimer_now();
+  bolt_trq_timestamp  = lptimer_now() - 20;   /* subtract wakeup + ISR + function call delays (estimate only) */
   timestamp_requested = true;
 }
 

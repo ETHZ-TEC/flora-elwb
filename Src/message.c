@@ -17,9 +17,11 @@ extern QueueHandle_t xQueueHandle_rx;
 /* Private variables ---------------------------------------------------------*/
 
 static dpp_message_t      msg_buffer;
-static uint16_t           rcvd_msg_cnt     = 0;
+static uint32_t           rcvd_msg_cnt     = 0;
 static event_msg_level_t  event_msg_level  = EVENT_MSG_LEVEL;
 static event_msg_target_t event_msg_target = EVENT_MSG_TARGET;
+
+LIST_CREATE(pending_commands, sizeof(scheduled_cmd_t), COMMAND_QUEUE_SIZE);
 
 
 /* Functions -----------------------------------------------------------------*/
@@ -124,23 +126,40 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
   if (msg->header.target_id == NODE_ID || forward) {
     rcvd_msg_cnt++;
     if (msg->header.type == DPP_MSG_TYPE_CMD) {
+      scheduled_cmd_t sched_cmd;
+      uint32_t        curr_time;
+      bool successful = false;
+
       LOG_VERBOSE("command received");
-      uint8_t  successful = 0;
-      //uint16_t arg1 = msg->cmd.arg16[0];
 
       switch(msg->cmd.type) {
       case DPP_COMMAND_RESET:
         if (IS_HOST) {
           // only reset if message is not a broadcast message
           if (!forward) {
-            //TODO trigger reset
+            NVIC_SystemReset();
           }
         } else {
-          //TODO trigger reset
+          NVIC_SystemReset();
         }
         break;
 
-      // TODO implement more commands
+      case CMD_SX1262_BASEBOARD_ENABLE:
+      case CMD_SX1262_BASEBOARD_DISABLE:
+        curr_time = elwb_get_time_sec(0);
+        sched_cmd.type           = msg->cmd.type;
+        sched_cmd.scheduled_time = msg->cmd.arg32[0];
+        if (msg->cmd.arg[4] > 0) {
+          /* relative time */
+          sched_cmd.scheduled_time += curr_time;
+        } else if (sched_cmd.scheduled_time < curr_time) {
+          /* time is in the past -> ignore command */
+          break;
+        }
+        sched_cmd.arg = msg->cmd.arg[5];
+        list_insert(pending_commands, sched_cmd.scheduled_time, &sched_cmd);
+        successful = true;
+        break;
 
   #if IS_HOST
       /* commands that only the host can handle */
@@ -211,6 +230,33 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
     return 0;
   }
   return 1;
+}
+
+void process_commands(void)
+{
+  const scheduled_cmd_t* next_cmd = list_get_head(pending_commands);
+  if (next_cmd) {
+    /* there are pending commands */
+    uint32_t curr_time = elwb_get_time_sec(0);
+    /* anything that needs to be executed now? */
+    while (next_cmd && next_cmd->scheduled_time <= curr_time) {
+      switch (next_cmd->type) {
+      case CMD_SX1262_BASEBOARD_ENABLE:
+        PIN_SET(BASEBOARD_ENABLE);
+        LOG_INFO_CONST("baseboard enabled");
+        // TODO send wakeup command
+        break;
+      case CMD_SX1262_BASEBOARD_DISABLE:
+        PIN_CLR(BASEBOARD_ENABLE);
+        LOG_INFO_CONST("baseboard disabled");
+        break;
+      default:
+        break;
+      }
+      list_remove_head(pending_commands, 0);
+      next_cmd = list_get_head(pending_commands);
+    }
+  }
 }
 
 void send_timestamp(uint64_t trq_timestamp)
