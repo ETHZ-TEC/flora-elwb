@@ -34,7 +34,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
- 
+#ifndef ISR_ON_IND
+#define ISR_ON_IND()
+#define ISR_OFF_IND()
+#endif /* ISR_ON_IND */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -81,10 +84,10 @@ extern TIM_HandleTypeDef htim1;
 void NMI_Handler(void)
 {
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
@@ -94,7 +97,7 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -111,7 +114,7 @@ void HardFault_Handler(void)
 void MemManage_Handler(void)
 {
   /* USER CODE BEGIN MemoryManagement_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END MemoryManagement_IRQn 0 */
   while (1)
   {
@@ -128,7 +131,7 @@ void MemManage_Handler(void)
 void BusFault_Handler(void)
 {
   /* USER CODE BEGIN BusFault_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END BusFault_IRQn 0 */
   while (1)
   {
@@ -145,7 +148,7 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
   /* USER CODE BEGIN UsageFault_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END UsageFault_IRQn 0 */
   while (1)
   {
@@ -162,10 +165,10 @@ void UsageFault_Handler(void)
 void DebugMon_Handler(void)
 {
   /* USER CODE BEGIN DebugMonitor_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END DebugMonitor_IRQn 0 */
   /* USER CODE BEGIN DebugMonitor_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END DebugMonitor_IRQn 1 */
 }
 
@@ -182,11 +185,11 @@ void DebugMon_Handler(void)
 void DMA1_Channel4_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel4_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END DMA1_Channel4_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart1_tx);
   /* USER CODE BEGIN DMA1_Channel4_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END DMA1_Channel4_IRQn 1 */
 }
 
@@ -196,11 +199,11 @@ void DMA1_Channel4_IRQHandler(void)
 void DMA1_Channel5_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel5_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END DMA1_Channel5_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart1_rx);
   /* USER CODE BEGIN DMA1_Channel5_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END DMA1_Channel5_IRQn 1 */
 }
 
@@ -210,12 +213,12 @@ void DMA1_Channel5_IRQHandler(void)
 void TIM1_UP_TIM16_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END TIM1_UP_TIM16_IRQn 0 */
   HAL_TIM_IRQHandler(&htim1);
   HAL_TIM_IRQHandler(&htim16);
   /* USER CODE BEGIN TIM1_UP_TIM16_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END TIM1_UP_TIM16_IRQn 1 */
 }
 
@@ -225,11 +228,11 @@ void TIM1_UP_TIM16_IRQHandler(void)
 void TIM2_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM2_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END TIM2_IRQn 0 */
   HAL_TIM_IRQHandler(&htim2);
   /* USER CODE BEGIN TIM2_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END TIM2_IRQn 1 */
 }
 
@@ -239,11 +242,11 @@ void TIM2_IRQHandler(void)
 void SPI1_IRQHandler(void)
 {
   /* USER CODE BEGIN SPI1_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END SPI1_IRQn 0 */
   HAL_SPI_IRQHandler(&hspi1);
   /* USER CODE BEGIN SPI1_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END SPI1_IRQn 1 */
 }
 
@@ -253,11 +256,11 @@ void SPI1_IRQHandler(void)
 void SPI2_IRQHandler(void)
 {
   /* USER CODE BEGIN SPI2_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END SPI2_IRQn 0 */
   HAL_SPI_IRQHandler(&hspi2);
   /* USER CODE BEGIN SPI2_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END SPI2_IRQn 1 */
 }
 
@@ -267,11 +270,11 @@ void SPI2_IRQHandler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END USART1_IRQn 1 */
 }
 
@@ -281,11 +284,11 @@ void USART1_IRQHandler(void)
 void EXTI15_10_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END EXTI15_10_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END EXTI15_10_IRQn 1 */
 }
 
@@ -295,11 +298,11 @@ void EXTI15_10_IRQHandler(void)
 void LPTIM1_IRQHandler(void)
 {
   /* USER CODE BEGIN LPTIM1_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END LPTIM1_IRQn 0 */
   HAL_LPTIM_IRQHandler(&hlptim1);
   /* USER CODE BEGIN LPTIM1_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END LPTIM1_IRQn 1 */
 }
 
@@ -311,11 +314,11 @@ void LPTIM1_IRQHandler(void)
 void EXTI3_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI3_IRQn 0 */
-
+  ISR_ON_IND();
   /* USER CODE END EXTI3_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(COM_TREQ_Pin);
   /* USER CODE BEGIN EXTI3_IRQn 1 */
-
+  ISR_OFF_IND();
   /* USER CODE END EXTI3_IRQn 1 */
 }
 /* USER CODE END 1 */

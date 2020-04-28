@@ -79,31 +79,40 @@
 #endif /* SWO_ENABLE */
 
 /* debugging */
-#define CPU_ON_IND()                    //PIN_SET(COM_GPIO1)  /* pin to indicate activity (e.g. to calculate the duty cycle) */
-#define CPU_OFF_IND()                   //PIN_CLR(COM_GPIO1)
-#define LPM_ON_IND()                    //PIN_CLR(COM_GPIO1)
-#define LPM_OFF_IND()                   //PIN_SET(COM_GPIO1)
-#define IDLE_TASK_RESUMED()             //PIN_SET(COM_GPIO2)
-#define IDLE_TASK_SUSPENDED()           //PIN_CLR(COM_GPIO2)
-#if FLOCKLAB
-  #define ELWB_RESUMED()                PIN_SET(FLOCKLAB_LED1)
-  #define ELWB_SUSPENDED()              PIN_CLR(FLOCKLAB_LED1)
-  #define PRE_TASK_RESUMED()            PIN_SET(FLOCKLAB_LED1)
-  #define PRE_TASK_SUSPENDED()          PIN_CLR(FLOCKLAB_LED1)
-  #define POST_TASK_RESUMED()           PIN_SET(FLOCKLAB_LED1)
-  #define POST_TASK_SUSPENDED()         PIN_CLR(FLOCKLAB_LED1)
-  #define GLORIA_START_IND()            led_on(LED_SYSTEM); PIN_SET(FLOCKLAB_LED3)
-  #define GLORIA_STOP_IND()             led_off(LED_SYSTEM); PIN_CLR(FLOCKLAB_LED3)
-#else /* FLOCKLAB */
-  #define ELWB_RESUMED()                PIN_SET(COM_GPIO1)
-  #define ELWB_SUSPENDED()              PIN_CLR(COM_GPIO1)
-  #define PRE_TASK_RESUMED()            PIN_SET(COM_GPIO1)
-  #define PRE_TASK_SUSPENDED()          PIN_CLR(COM_GPIO1)
-  #define POST_TASK_RESUMED()           PIN_SET(COM_GPIO1)
-  #define POST_TASK_SUSPENDED()         PIN_CLR(COM_GPIO1)
-  #define GLORIA_START_IND()            led_on(LED_SYSTEM); PIN_SET(COM_GPIO2)
-  #define GLORIA_STOP_IND()             led_off(LED_SYSTEM); PIN_CLR(COM_GPIO2)
-#endif /* FLOCKLAB */
+#if !BASEBOARD
+  #define CPU_ON_IND()                  //PIN_SET(COM_GPIO1)  /* pin to indicate activity (e.g. to calculate the duty cycle) */
+  #define CPU_OFF_IND()                 //PIN_CLR(COM_GPIO1)
+  #define LPM_ON_IND()                  //PIN_CLR(COM_GPIO1)
+  #define LPM_OFF_IND()                 //PIN_SET(COM_GPIO1)
+  #define IDLE_TASK_RESUMED()           //PIN_SET(COM_GPIO2)
+  #define IDLE_TASK_SUSPENDED()         //PIN_CLR(COM_GPIO2)
+  #if FLOCKLAB
+    #define ISR_ON_IND()                PIN_SET(FLOCKLAB_INT1)
+    #define ISR_OFF_IND()               PIN_CLR(FLOCKLAB_INT1)
+    #define ELWB_RESUMED()              PIN_SET(FLOCKLAB_LED1)
+    #define ELWB_SUSPENDED()            PIN_CLR(FLOCKLAB_LED1)
+    #define PRE_TASK_RESUMED()          PIN_SET(FLOCKLAB_LED1)
+    #define PRE_TASK_SUSPENDED()        PIN_CLR(FLOCKLAB_LED1)
+    #define POST_TASK_RESUMED()         PIN_SET(FLOCKLAB_LED1)
+    #define POST_TASK_SUSPENDED()       PIN_CLR(FLOCKLAB_LED1)
+    #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(FLOCKLAB_LED3)
+    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(FLOCKLAB_LED3)
+  #else /* FLOCKLAB */
+    #define ISR_ON_IND()                PIN_SET(COM_GPIO2)
+    #define ISR_OFF_IND()               PIN_CLR(COM_GPIO2)
+    #define ELWB_RESUMED()              PIN_SET(COM_GPIO1)
+    #define ELWB_SUSPENDED()            PIN_CLR(COM_GPIO1)
+    #define PRE_TASK_RESUMED()          PIN_SET(COM_GPIO1)
+    #define PRE_TASK_SUSPENDED()        PIN_CLR(COM_GPIO1)
+    #define POST_TASK_RESUMED()         PIN_SET(COM_GPIO1)
+    #define POST_TASK_SUSPENDED()       PIN_CLR(COM_GPIO1)
+    #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(COM_GPIO1)
+    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(COM_GPIO1)
+  #endif /* FLOCKLAB */
+#else /* BASEBOARD */
+  #define GLORIA_START_IND()            led_on(LED_SYSTEM)
+  #define GLORIA_STOP_IND()             led_off(LED_SYSTEM)
+#endif /* BASEBOARD */
 
 
 /* --- parameter checks --- */
@@ -112,5 +121,12 @@
 #error "BOLT_MAX_MSG_LEN is too small"
 #endif
 
+#if FLOCKLAB && BASEBOARD
+#error "can't use target FLOCKLAB and BASEBOARD at the same time"
+#endif
+
+#if FLOCKLAB && (HOST_ID < 2 || HOST_ID > 12)
+#error "HOST_ID is invalid for target FLOCKLAB"
+#endif
 
 #endif /* __APP_CONFIG_H */

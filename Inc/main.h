@@ -92,7 +92,7 @@ extern SPI_HandleTypeDef hspi1;
 /* USER CODE BEGIN EM */
 
 #define FATAL_ERROR(str)    __disable_irq(); \
-                            LOG_PRINT_FUNC(str, sizeof(str)); \
+                            LOG_PRINT_FUNC("FATAL ERROR: " str, sizeof(str)); \
                             led_on(LED_EVENT); \
                             delay_us(10000000); \
                             NVIC_SystemReset()
