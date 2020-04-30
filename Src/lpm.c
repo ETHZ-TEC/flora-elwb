@@ -67,6 +67,8 @@ void update_opmode(op_mode_event_t evt)
 /* prepare the MCU for low power mode */
 void lpm_prepare(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+
   /* only enter a low-power mode if the application is in idle state */
   if (op_mode == OP_MODE_IDLE)
   {
@@ -74,10 +76,9 @@ void lpm_prepare(void)
       /* do not update op_mode since we are already in IDLE and we are not entering a real LPM state */
       HAL_SuspendTick();
     }
-    else if ( (lp_mode == LP_MODE_STOP2)   ||
-              (lp_mode == LP_MODE_STANDBY) ||
-              (lp_mode == LP_MODE_SHUTDOWN)     )
-    {
+    else if ((lp_mode == LP_MODE_STOP2)   ||
+             (lp_mode == LP_MODE_STANDBY) ||
+             (lp_mode == LP_MODE_SHUTDOWN)) {
       /* make sure the radio is in sleep mode */
       radio_sleep(false);
 
@@ -124,28 +125,11 @@ void lpm_prepare(void)
       if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) { Error_Handler(); }
 
       /* configure unused GPIOs for minimal current drain (make sure there are no floating inputs) */
-      // NOTE1: Not necessary at the moment since pins are either not used or by default already configured as input
-      // NOTE2: For some constellation the analog mode causes a higher power consumpton than leaving it configured as input
-      // NOTE3: restore of RADIO_DIO1_Pin breaks wakeup from LPM, reason unknown (PA15 is connected to PC13 in hardware on the COM board)
-      // GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-      // GPIO_InitStruct.Pin = RADIO_DIO1_Pin;
-      // HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-      // GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-      // GPIO_InitStruct.Pin = RADIO_BUSY_Pin;
-      // HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-      // GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-      // GPIO_InitStruct.Pin = BOLT_SCK_Pin|BOLT_MOSI_Pin|BOLT_MISO_Pin;
-      // HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-      // GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-      // GPIO_InitStruct.Pin = UART_TX_Pin|UART_RX_Pin;
-      // HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-      //// disabling Radio SPI pins causes floating pin in low-power mode (reason unknown)
-      // GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-      // GPIO_InitStruct.Pin = RADIO_SCK_Pin|RADIO_MISO_Pin|RADIO_MOSI_Pin;   // SPI for radio: RADIO_SCK_Pin|RADIO_MISO_Pin|RADIO_MOSI_Pin
-      // HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-      //// RADIO_DIO1 (PC13) should not be disabled in low power mode -> it would no longer be possible to wake up from STOP2 with a radio interrupt
-      // // GPIO_InitStruct.Pin = RADIO_DIO1_WAKEUP_Pin;        // HSE pins: GPIO_PIN_14|GPIO_PIN_15
-      // // HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+      GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;
+      GPIO_InitStruct.Pin   = UART_RX_Pin | UART_TX_Pin;    /* reconfigure UART pins */
+      GPIO_InitStruct.Pull  = GPIO_PULLUP;
+      GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+      HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
       /* turn off LEDs */
       led_off(LED_EVENT);
@@ -153,7 +137,6 @@ void lpm_prepare(void)
       PIN_CLR(COM_GPIO1);     /* has external pulldown */
 
   #if BOLT_ENABLE
-      GPIO_InitTypeDef GPIO_InitStruct = {0};
       /* configure BOLT TREQ in EXTI mode */
       GPIO_InitStruct.Pin = COM_TREQ_Pin;
       GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
@@ -227,6 +210,8 @@ void lpm_prepare(void)
 
 void lpm_resume(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+
   if (op_mode == OP_MODE_IDLE) {
     /* MCU was in sleep mode, only tick needs to be restored */
     HAL_ResumeTick();
@@ -256,39 +241,12 @@ void lpm_resume(void)
     SystemClock_Config();                               /* restore clock config (and resume HAL tick) */
 
     /* restore GPIO config */
-    // NOTE1: Not necessary at the moment since pins are either not used or by default already configured as input
-    // NOTE2: For some constellation the analog mode causes a higher power consumpton than leaving it configured as input
-    // NOTE3: restore of RADIO_DIO1_Pin breaks wakeup from LPM, reason unknown (PA15 is connected to PC13 in hardware on the COM board)
-    // GPIO_InitTypeDef GPIO_InitStruct = {0};
-    // GPIO_InitStruct.Pin  = RADIO_BUSY_Pin;
-    // GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    // GPIO_InitStruct.Pull = GPIO_NOPULL;
-    // HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    // GPIO_InitStruct.Pin = BOLT_SCK_Pin|BOLT_MOSI_Pin|BOLT_MISO_Pin;
-    // GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    // GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    // GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
-    // HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    // GPIO_InitStruct.Pin = UART_TX_Pin|UART_RX_Pin;
-    // GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    // GPIO_InitStruct.Pull = GPIO_NOPULL;
-    // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    // GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
-    // HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    //// disabling Radio SPI pins causes floating pin in low-power mode (reason unknown)
-    // GPIO_InitStruct.Pin = RADIO_SCK_Pin|RADIO_MISO_Pin|RADIO_MOSI_Pin;
-    // GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    // GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    // GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
-    // HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-    // GPIO_InitStruct.Pin = RADIO_DIO1_Pin;
-    // GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    // GPIO_InitStruct.Pull = GPIO_NOPULL;
-    // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    // GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
-    // HAL_GPIO_Init(RADIO_DIO1A15_GPIO_Port, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin   = UART_TX_Pin | UART_RX_Pin;
+    GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull  = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* restore peripherals */
     __HAL_TIM_ENABLE(&htim2);

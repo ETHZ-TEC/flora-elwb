@@ -129,6 +129,8 @@ int main(void)
   LOG_INFO("compiler version: %s", __VERSION__);
   LOG_INFO("compile date: %s", __TIMESTAMP__);
   LOG_INFO("node ID: %u", NODE_ID);
+  LOG_INFO("reset flag: 0x%x", RCC->CSR >> 24);
+  RCC->CSR |= (1 << 23);   // clear reset flags
 
   system_init();
 

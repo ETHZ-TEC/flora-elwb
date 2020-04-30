@@ -20,15 +20,15 @@
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
 #define FW_VERSION_PATCH                0           /* 0..99 */
-#define FLOCKLAB                        1
-#define BASEBOARD                       0
+#define FLOCKLAB                        0
+#define BASEBOARD                       1
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
 #define LOW_POWER_MODE                  LP_MODE_STOP2  /* low-power mode to use between rounds during periods of inactivity */
 
 /* network parameters */
-#define HOST_ID                         2
+#define HOST_ID                         103
 #if !FLOCKLAB
   #define NODE_ID                       HOST_ID
 #endif /* FLOCKLAB */
