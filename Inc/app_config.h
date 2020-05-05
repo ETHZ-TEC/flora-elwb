@@ -19,7 +19,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                0           /* 0..99 */
+#define FW_VERSION_PATCH                1           /* 0..99 */
 #define FLOCKLAB                        0
 #define BASEBOARD                       1
 #define BOLT_ENABLE                     (!FLOCKLAB)
@@ -73,6 +73,14 @@
 /* logging */
 #define LOG_ENABLE                      1
 #define LOG_LEVEL                       LOG_LEVEL_VERBOSE
+#if BASEBOARD
+  #define LOG_ADD_TIMESTAMP             0       /* don't print the timestamp on the baseboard */
+  #define LOG_USE_COLORS                0
+  #define LOG_LEVEL_ERROR_STR           "<3>"  /* use syslog severity level number instead of strings */
+  #define LOG_LEVEL_WARNING_STR         "<4>"
+  #define LOG_LEVEL_INFO_STR            "<6>"
+  #define LOG_LEVEL_VERBOSE_STR         "<7>"
+#endif /* BASEBOARD */
 #if SWO_ENABLE
   #define LOG_PRINT_FUNC                swo_print
   //#define LOG_PRINT_IMMEDIATELY         1

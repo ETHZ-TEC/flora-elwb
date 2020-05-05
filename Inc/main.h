@@ -101,14 +101,6 @@ extern SPI_HandleTypeDef hspi1;
 #define MS_TO_HAL_TICKS(ms) (((ms) * HAL_GetTickFreq()) / 1000)
 #define MS_TO_RTOS_TICKS(ms)  ((ms) / portTICK_PERIOD_MS)       // = pdMS_TO_TICKS()
 
-/* pin definitions for the Baseboard */
-#define BASEBOARD_ENABLE_Pin              COM_GPIO2_Pin
-#define BASEBOARD_ENABLE_GPIO_Port        COM_GPIO2_GPIO_Port
-#define BASEBOARD_WAKE_Pin                COM_GPIO1_Pin
-#define BASEBOARD_WAKE_GPIO_Port          COM_GPIO1_GPIO_Port
-#define BASEBOARD_VEXT3_SWITCH_Pin        COM_PROG2_Pin
-#define BASEBOARD_VEXT3_SWITCH_GPIO_Port  COM_PROG2_GPIO_Port
-
 
 /* USER CODE END EM */
 

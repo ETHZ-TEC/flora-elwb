@@ -146,7 +146,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
       case CMD_SX1262_BASEBOARD_ENABLE:
       case CMD_SX1262_BASEBOARD_DISABLE:
-        curr_time = elwb_get_time_sec(0);
+        curr_time = elwb_get_time_sec();
         sched_cmd.type           = msg->cmd.type;
         sched_cmd.scheduled_time = msg->cmd.arg32[0];
         if (msg->cmd.arg[4] > 0) {
@@ -237,7 +237,7 @@ void process_commands(void)
   const scheduled_cmd_t* next_cmd = list_get_head(pending_commands);
   if (next_cmd) {
     /* there are pending commands */
-    uint32_t curr_time = elwb_get_time_sec(0);
+    uint32_t curr_time = elwb_get_time_sec();
     /* anything that needs to be executed now? */
     while (next_cmd && next_cmd->scheduled_time <= curr_time) {
       switch (next_cmd->type) {
