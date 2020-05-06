@@ -21,7 +21,7 @@
 #define FW_VERSION_MINOR                1           /* 0..99 */
 #define FW_VERSION_PATCH                1           /* 0..99 */
 #define FLOCKLAB                        0
-#define BASEBOARD                       1
+#define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
@@ -64,6 +64,8 @@
 #define ELWB_CONF_T_SCHED               (ELWB_TIMER_SECOND / 50)      /* 20ms */
 #define ELWB_CONF_T_DATA                (ELWB_TIMER_SECOND / 50)      /* 20ms */
 #define ELWB_CONF_T_CONT                (ELWB_TIMER_SECOND / 100)     /* 10ms */
+#define ELWB_CONF_SCHED_PERIOD_IDLE     60
+#define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_IS_HOST()                  IS_HOST
 

@@ -673,7 +673,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : BOLT_REQ_Pin BOLT_MODE_Pin */
   GPIO_InitStruct.Pin = BOLT_REQ_Pin|BOLT_MODE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
