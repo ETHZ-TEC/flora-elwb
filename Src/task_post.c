@@ -44,7 +44,7 @@ void vTask_post(void const * argument)
                        comTaskStackWM  = 0,
                        postTaskStackWM = 0;
 
-  LOG_INFO_CONST("Post task started");
+  LOG_INFO("Post task started");
 
   /* Infinite loop */
   for(;;)
@@ -134,16 +134,12 @@ void vTask_post(void const * argument)
 
     /* print some stats */
     LOG_INFO("CPU duty cycle: %u%%", (uint16_t)rtos_get_cpu_dc() / 100);
-    LOG_VERBOSE_CONST("post task executed");
+    LOG_VERBOSE("post task executed");
 
     /* flush the log print queue */
 #if !LOG_PRINT_IMMEDIATELY
     log_flush();
 #endif /* LOG_PRINT_IMMEDIATELY */
-    /* stall until UART transmissions finished before going to low-power mode */
-    while (!uart_tx_fifo_empty()) {
-      delay_us(100);
-    }
 
     /* round finished, prepare for low-power mode */
     update_opmode(OP_MODE_EVT_DONE);

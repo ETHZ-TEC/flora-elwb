@@ -43,6 +43,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+IWDG_HandleTypeDef hiwdg;
+
 LPTIM_HandleTypeDef hlptim1;
 
 SPI_HandleTypeDef hspi1;
@@ -59,6 +61,8 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 
+uint_fast8_t  reset_flag;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -72,6 +76,7 @@ static void MX_TIM2_Init(void);
 static void MX_TIM16_Init(void);
 static void MX_TIM15_Init(void);
 static void MX_LPTIM1_Init(void);
+static void MX_IWDG_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -121,6 +126,7 @@ int main(void)
   MX_TIM16_Init();
   MX_TIM15_Init();
   MX_LPTIM1_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 
   /* print firmware and compiler info as well as the node ID */
@@ -130,7 +136,7 @@ int main(void)
   LOG_INFO("compile date: %s", __TIMESTAMP__);
   LOG_INFO("node ID: %u", NODE_ID);
   LOG_INFO("reset flag: 0x%x", RCC->CSR >> 24);
-  RCC->CSR |= (1 << 23);   // clear reset flags
+  RCC->CSR |= (1 << 23);
 
   system_init();
 
@@ -197,12 +203,13 @@ void SystemClock_Config(void)
   __HAL_RCC_LSEDRIVE_CONFIG(RCC_LSEDRIVE_LOW);
   /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_HSE
-                              |RCC_OSCILLATORTYPE_LSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI
+                              |RCC_OSCILLATORTYPE_HSE|RCC_OSCILLATORTYPE_LSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.LSEState = RCC_LSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 1;
@@ -240,6 +247,35 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief IWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_IWDG_Init(void)
+{
+
+  /* USER CODE BEGIN IWDG_Init 0 */
+
+  /* USER CODE END IWDG_Init 0 */
+
+  /* USER CODE BEGIN IWDG_Init 1 */
+
+  /* USER CODE END IWDG_Init 1 */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_128;
+  hiwdg.Init.Window = 4095;
+  hiwdg.Init.Reload = 4095;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN IWDG_Init 2 */
+
+  /* USER CODE END IWDG_Init 2 */
+
 }
 
 /**

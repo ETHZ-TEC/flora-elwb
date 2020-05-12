@@ -19,13 +19,13 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                1           /* 0..99 */
+#define FW_VERSION_PATCH                2           /* 0..99 */
 #define FLOCKLAB                        0
 #define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
-#define LOW_POWER_MODE                  LP_MODE_STOP2  /* low-power mode to use between rounds during periods of inactivity */
+#define LOW_POWER_MODE                  LP_MODE_SLEEP  //STOP2  /* low-power mode to use between rounds during periods of inactivity */
 
 /* network parameters */
 #define HOST_ID                         103
@@ -64,13 +64,16 @@
 #define ELWB_CONF_T_SCHED               (ELWB_TIMER_SECOND / 50)      /* 20ms */
 #define ELWB_CONF_T_DATA                (ELWB_TIMER_SECOND / 50)      /* 20ms */
 #define ELWB_CONF_T_CONT                (ELWB_TIMER_SECOND / 100)     /* 10ms */
-#define ELWB_CONF_SCHED_PERIOD_IDLE     60
+#define ELWB_CONF_SCHED_PERIOD_IDLE     15
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_IS_HOST()                  IS_HOST
 
 /* misc */
 #define HS_TIMER_COMPENSATE_DRIFT       0
+#define LPTIMER_RESET_WDG_ON_OVF        1
+#define LPTIMER_CHECK_EXP_TIME          1
+#define UART_FIFO_BUFFER_SIZE           1     /* not used */
 
 /* logging */
 #define LOG_ENABLE                      1
@@ -92,8 +95,8 @@
 #if !BASEBOARD
   #define CPU_ON_IND()                  //PIN_SET(COM_GPIO1)  /* pin to indicate activity (e.g. to calculate the duty cycle) */
   #define CPU_OFF_IND()                 //PIN_CLR(COM_GPIO1)
-  #define LPM_ON_IND()                  //PIN_CLR(COM_GPIO1)
-  #define LPM_OFF_IND()                 //PIN_SET(COM_GPIO1)
+  #define LPM_ON_IND()                  PIN_CLR(COM_GPIO1)
+  #define LPM_OFF_IND()                 PIN_SET(COM_GPIO1)
   #define IDLE_TASK_RESUMED()           //PIN_SET(COM_GPIO2)
   #define IDLE_TASK_SUSPENDED()         //PIN_CLR(COM_GPIO2)
   #if FLOCKLAB

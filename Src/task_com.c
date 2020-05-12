@@ -21,7 +21,7 @@ extern QueueHandle_t xQueueHandle_tx;
 /* communication task */
 void vTask_com(void const * argument)
 {
-  LOG_INFO_CONST("eLWB task started");
+  LOG_INFO("eLWB task started");
 
   // TODO postpone start of eLWB on host node until a valid UNIX timestamp has been received!
 

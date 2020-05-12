@@ -8,10 +8,18 @@
 /* functions related to DPP message handling */
 
 #include "main.h"
+#ifdef __GNUC__
+  /* only include this file on Linux */
+  #include "gitrev.h"   /* note: this file should be included here, otherwise all files will be recompiled every time */
+#else
+  #define GIT_REV     0
+  #define BUILD_TIME  0
+#endif /* __GNUC__ */
 
 
 extern QueueHandle_t xQueueHandle_tx;
 extern QueueHandle_t xQueueHandle_rx;
+extern uint_fast8_t  reset_flag;
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -41,7 +49,7 @@ uint_fast8_t send_msg(uint16_t recipient,
 
   /* check message length */
   if (len > DPP_MSG_PAYLOAD_LEN) {
-    LOG_WARNING_CONST("invalid message length");
+    LOG_WARNING("invalid message length");
     //EVENT_WARNING(EVENT_CC430_INV_MSG, ((uint32_t)type) << 16 | 0xff00 | len);
     return 0;
   }
@@ -87,17 +95,17 @@ uint_fast8_t send_msg(uint16_t recipient,
   if (send_to_bolt) {
 #if BOLT_ENABLE
     if (bolt_write((uint8_t*)&msg_buffer, msg_buffer_len)) {
-      LOG_VERBOSE_CONST("msg written to BOLT");
+      LOG_VERBOSE("msg written to BOLT");
       return 1;
     }
-    LOG_INFO_CONST("msg dropped (BOLT queue full)");
+    LOG_INFO("msg dropped (BOLT queue full)");
 #endif /* BOLT_ENABLE */
   } else {
     if (xQueueSend(xQueueHandle_tx, &msg_buffer, 0)) {
-      LOG_VERBOSE_CONST("msg added to transmit queue");
+      LOG_VERBOSE("msg added to transmit queue");
       return 1;
     }
-    LOG_ERROR_CONST("msg dropped (TX queue full)");
+    LOG_ERROR("msg dropped (TX queue full)");
   }
   return 0;
 }
@@ -213,7 +221,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
     if (rcvd_from_bolt) {
       /* forward to network */
       if (!xQueueSend(xQueueHandle_tx, (uint8_t*)msg, 0)) {
-        LOG_ERROR_CONST("failed to insert msg into transmit queue");
+        LOG_ERROR("failed to insert msg into transmit queue");
       } else {
         LOG_VERBOSE("msg forwarded to network (type: %u, dest: %u)", msg->header.type, msg->header.target_id);
       }
@@ -243,12 +251,12 @@ void process_commands(void)
       switch (next_cmd->type) {
       case CMD_SX1262_BASEBOARD_ENABLE:
         PIN_SET(BASEBOARD_ENABLE);
-        LOG_INFO_CONST("baseboard enabled");
+        LOG_INFO("baseboard enabled");
         // TODO send wakeup command
         break;
       case CMD_SX1262_BASEBOARD_DISABLE:
         PIN_CLR(BASEBOARD_ENABLE);
-        LOG_INFO_CONST("baseboard disabled");
+        LOG_INFO("baseboard disabled");
         break;
       default:
         break;
@@ -272,16 +280,16 @@ void send_node_info(void)
   memset((uint8_t*)&msg_buffer.node_info, 0, sizeof(dpp_node_info_t));
   msg_buffer.node_info.component_id = DPP_COMPONENT_ID_SX1262;
   msg_buffer.node_info.compiler_ver = (__GNUC__ * 1000000 + __GNUC_MINOR__ * 1000 + __GNUC_PATCHLEVEL__);
-  msg_buffer.node_info.compile_date = 0;    // TODO
+  msg_buffer.node_info.compile_date = BUILD_TIME;   // UNIX timestamp
   msg_buffer.node_info.fw_ver       = (uint16_t)(FW_VERSION_MAJOR * 10000 + FW_VERSION_MINOR * 100 + FW_VERSION_PATCH);
   msg_buffer.node_info.rst_cnt      = 0;    // TODO
-  msg_buffer.node_info.rst_flag     = 0;    // TODO
-  msg_buffer.node_info.sw_rev_id    = 0;    // TODO   hexstr_to_uint32(GIT_HEADREV_SHA);
+  msg_buffer.node_info.rst_flag     = reset_flag;
+  msg_buffer.node_info.sw_rev_id    = GIT_REV_INT;
   memcpy(msg_buffer.node_info.compiler_desc, "GCC", MIN(4, strlen("GCC")));
   memcpy(msg_buffer.node_info.fw_name, FW_NAME, MIN(8, strlen(FW_NAME)));
   memcpy(msg_buffer.node_info.mcu_desc, "STM32L433CC", MIN(12, strlen("STM32L433CC")));
 
-  LOG_INFO_CONST("node info msg generated");
+  LOG_INFO("node info msg generated");
   /* note: host sends message towards BOLT */
   send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_NODE_INFO, 0, 0, IS_HOST);
 }
@@ -327,7 +335,7 @@ void send_node_health(void)
   /* the host must send to BOLT, all other nodes to the network */
   send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_COM_HEALTH, 0, 0, IS_HOST);
 
-  LOG_INFO_CONST("health msg generated");
+  LOG_INFO("health msg generated");
 }
 
 void send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val)
@@ -351,12 +359,12 @@ void send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val)
     event.value = val;
     if (event_msg_target == EVENT_MSG_TARGET_BOLT) {
       send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, true);
-      LOG_VERBOSE_CONST("event msg sent to BOLT");
+      LOG_VERBOSE("event msg sent to BOLT");
     } else if (event_msg_target == EVENT_MSG_TARGET_NETWORK) {
       send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, false);
-      LOG_VERBOSE_CONST("event msg sent to LWB");
+      LOG_VERBOSE("event msg sent to LWB");
     } else {
-      LOG_WARNING_CONST("invalid event target");
+      LOG_WARNING("invalid event target");
     }
   }
 }

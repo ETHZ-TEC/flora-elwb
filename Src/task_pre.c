@@ -175,7 +175,7 @@ void vTask_pre(void const * argument)
     while (max_read_cnt && uxQueueSpacesAvailable(xQueueHandle_tx) && BOLT_DATA_AVAILABLE) {
       uint32_t len = bolt_read(bolt_read_buffer);
       if (!len) {
-        LOG_ERROR_CONST("bolt read failed");
+        LOG_ERROR("bolt read failed");
         break;
       }
       if (!process_message((dpp_message_t*)bolt_read_buffer, true)) {
@@ -200,7 +200,7 @@ void vTask_pre(void const * argument)
       update_time();
     }
 
-    LOG_VERBOSE_CONST("pre task executed");
+    LOG_VERBOSE("pre task executed");
   }
 }
 

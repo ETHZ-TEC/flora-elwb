@@ -85,6 +85,9 @@ typedef enum
 #if BOLT_ENABLE
 extern SPI_HandleTypeDef hspi1;
 #endif /* BOLT_ENABLE */
+#ifdef HAL_IWDG_MODULE_ENABLED
+extern IWDG_HandleTypeDef hiwdg;
+#endif /* HAL_IWDG_MODULE_ENABLED */
 
 /* USER CODE END EC */
 
