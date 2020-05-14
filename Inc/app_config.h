@@ -21,16 +21,18 @@
 #define FW_VERSION_MINOR                1           /* 0..99 */
 #define FW_VERSION_PATCH                2           /* 0..99 */
 #define FLOCKLAB                        0
-#define BASEBOARD                       0
+#define BASEBOARD                       1
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
 #define LOW_POWER_MODE                  LP_MODE_SLEEP  //STOP2  /* low-power mode to use between rounds during periods of inactivity */
 
 /* network parameters */
-#define HOST_ID                         103
 #if !FLOCKLAB
+  #define HOST_ID                       103
   #define NODE_ID                       HOST_ID
+#else
+  #define HOST_ID                       2
 #endif /* FLOCKLAB */
 #ifndef IS_HOST
   #define IS_HOST                       (NODE_ID == HOST_ID)
@@ -40,7 +42,11 @@
 #define TIMESTAMP_TYPICAL_DRIFT         100   /* typical drift +/- in ppm (if exceeded, a warning will be issued) */
 #define TIMESTAMP_MAX_DRIFT             150   /* max. allowed drift in ppm (higher values will be capped) */
 #define TIMESTAMP_MAX_OFFSET_MS         10    /* max. allowed offset in ms that the host tries to compensate; if larger, a jump in time occurs. set to 0 to always make a jump */
-#define TIMESTAMP_USE_HS_TIMER          0     /* use hs_timer for timestamping events on the TREQ pin */
+#if LOW_POWER_MODE == LP_MODE_SLEEP
+  #define TIMESTAMP_USE_HS_TIMER        1     /* use hs_timer for timestamping events on the TREQ pin */
+#else
+  #define TIMESTAMP_USE_HS_TIMER        0     /* don't use hs_timer for timestamping events on the TREQ pin */
+#endif /* LP_MODE_SLEEP */
 
 /* data collection config */
 #define NODE_HEALTH_MSG_PERIOD          300
@@ -86,6 +92,9 @@
   #define LOG_LEVEL_INFO_STR            "<6>"
   #define LOG_LEVEL_VERBOSE_STR         "<7>"
 #endif /* BASEBOARD */
+#if FLOCKLAB
+  #define LOG_ADD_TIMESTAMP             0       /* don't print the timestamp on FlockLab */
+#endif /* FLOCKLAB */
 #if SWO_ENABLE
   #define LOG_PRINT_FUNC                swo_print
   //#define LOG_PRINT_IMMEDIATELY         1

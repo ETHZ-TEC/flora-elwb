@@ -19,7 +19,6 @@
 
 extern QueueHandle_t xQueueHandle_tx;
 extern QueueHandle_t xQueueHandle_rx;
-extern uint_fast8_t  reset_flag;
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -34,14 +33,180 @@ LIST_CREATE(pending_commands, sizeof(scheduled_cmd_t), COMMAND_QUEUE_SIZE);
 
 /* Functions -----------------------------------------------------------------*/
 
-/* Do not call this function from an interrupt context!
- * Note: data may be 0, in that case the function will use the payload in 
- *       the global struct msg_buffer                                            */
-uint_fast8_t send_msg(uint16_t recipient,
-                      dpp_message_type_t type,
-                      const uint8_t* data,
-                      uint8_t len,
-                      bool send_to_bolt)
+/* returns 1 if processed (or dropped), 0 if forwarded */
+uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
+{
+  uint16_t msg_len = DPP_MSG_LEN(msg);
+
+  /* check message type, length and CRC */
+  if (msg->header.type & DPP_MSG_TYPE_MIN ||
+      msg_len > DPP_MSG_PKT_LEN ||
+      msg_len < (DPP_MSG_HDR_LEN + 2) ||
+      msg->header.payload_len == 0 ||
+      DPP_MSG_GET_CRC16(msg) != crc16((uint8_t*)msg, msg_len - 2, 0)) {
+    LOG_ERROR("msg with invalid length or CRC (%ub, type %u)", msg_len, msg->header.type);
+    //EVENT_WARNING(EVENT_CC430_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
+    return 1;
+  }
+  LOG_VERBOSE("msg type: %u, src: %u, len: %uB", msg->header.type, msg->header.device_id, msg_len);
+
+  /* only process the message if target ID matched the node ID */
+  uint16_t forward     = (msg->header.target_id == DPP_DEVICE_ID_BROADCAST);
+  uint8_t  cfg_changed = 0;
+
+  if (msg->header.target_id == NODE_ID || forward) {
+    rcvd_msg_cnt++;
+    if (msg->header.type == DPP_MSG_TYPE_CMD) {
+      scheduled_cmd_t sched_cmd;
+      uint32_t        curr_time;
+      bool successful = false;
+
+      LOG_VERBOSE("command received");
+
+      switch(msg->cmd.type) {
+      case DPP_COMMAND_RESET:
+        if (IS_HOST) {
+          // only reset if message is not a broadcast message
+          if (!forward) {
+            NVIC_SystemReset();
+          }
+        } else {
+          NVIC_SystemReset();
+        }
+        break;
+
+      case CMD_SX1262_BASEBOARD_ENABLE:
+      case CMD_SX1262_BASEBOARD_DISABLE:
+        if (IS_HOST) {
+          break;    /* host node is not supposed to turn off the baseboard */
+        }
+        curr_time = elwb_get_time_sec();
+        sched_cmd.type           = msg->cmd.type;
+        sched_cmd.scheduled_time = msg->cmd.arg32[0];
+        if (msg->cmd.arg[4] > 0) {
+          /* relative time */
+          sched_cmd.scheduled_time += curr_time;
+        } else if (sched_cmd.scheduled_time < curr_time) {
+          /* time is in the past -> ignore command */
+          break;
+        }
+        sched_cmd.arg = msg->cmd.arg16[2];
+        if (msg->cmd.type == CMD_SX1262_BASEBOARD_DISABLE && sched_cmd.arg == 0) {
+          sched_cmd.arg = 120;    /* use default value of 120 seconds */
+          /* make sure there is an enable command scheduled before accepting this disable command */
+
+        }
+        list_insert(pending_commands, sched_cmd.scheduled_time, &sched_cmd);
+        successful = true;
+        break;
+
+      default:
+        /* unknown command */
+        forward = 1;  /* forward to BOLT */
+        break;
+      }
+      /* command successfully executed? */
+      if (successful) {
+        LOG_INFO("cmd %u processed", msg->cmd.type);
+        //uint32_t val = (((uint32_t)arg1) << 16 | msg->cmd.type);
+        //EVENT_INFO(EVENT_CC430_CFG_CHANGED, val);
+        /* if necessary, store the new config in the flash memory */
+        if (cfg_changed) {
+          //nvcfg_save(&cfg);   TODO
+        }
+      }
+
+    /* message types only processed by the host */
+    } else if (msg->header.type == DPP_MSG_TYPE_TIMESYNC) {
+      set_master_timestamp(msg->timestamp);
+      LOG_VERBOSE("timestamp %llu received", msg->timestamp);
+
+    /* unknown message type */
+    } else {
+
+      if (!IS_HOST) {
+        forward = 1;    /* source nodes forward messages */
+        //EVENT_WARNING(EVENT_CC430_MSG_IGNORED, msg->header.type);
+      }
+    }
+
+  /* target id is not this node -> forward message */
+  } else {
+    forward = 1;
+  }
+
+  /* forward the message */
+  if (forward) {
+    if (rcvd_from_bolt) {
+      /* forward to network */
+      if (!xQueueSend(xQueueHandle_tx, (uint8_t*)msg, 0)) {
+        LOG_ERROR("failed to insert msg into transmit queue");
+      } else {
+        LOG_VERBOSE("msg forwarded to network (type: %u, dest: %u)", msg->header.type, msg->header.target_id);
+      }
+    } else {
+#if BOLT_ENABLE
+      /* forward to BOLT */
+      if (!bolt_write((uint8_t*)msg, msg_len)) {
+        LOG_ERROR("failed to write message to BOLT");
+      } else {
+        LOG_VERBOSE("msg forwarded to BOLT (type: %u, len: %uB)", msg->header.type, msg_len);
+      }
+#endif /* BOLT_ENABLE */
+    }
+    return 0;
+  }
+  return 1;
+}
+
+void process_commands(void)
+{
+  const scheduled_cmd_t* next_cmd = list_get_head(pending_commands);
+  if (next_cmd) {
+    /* there are pending commands */
+    uint32_t curr_time = elwb_get_time_sec();
+    /* anything that needs to be executed now? */
+    while (next_cmd && next_cmd->scheduled_time <= curr_time) {
+      switch (next_cmd->type) {
+      case CMD_SX1262_BASEBOARD_ENABLE:
+        //PIN_SET(BASEBOARD_ENABLE);
+        LOG_INFO("baseboard enabled");
+        send_command(CMD_BASEBOARD_WAKEUP_MODE, next_cmd->arg, 2);
+        break;
+      case CMD_SX1262_BASEBOARD_DISABLE:
+        if (next_cmd->arg == 0) {
+          //PIN_CLR(BASEBOARD_ENABLE);
+          LOG_INFO("baseboard disabled");
+        } else {
+          /* send shutdown notification to baseboard before turning off the power */
+          send_command(CMD_BASEBOARD_POWEROFF, 0, 0);
+          LOG_INFO("shutdown command sent");
+          /* schedule the power off */
+          scheduled_cmd_t new_cmd;
+          new_cmd.type           = CMD_SX1262_BASEBOARD_DISABLE;
+          new_cmd.arg            = 0;
+          new_cmd.scheduled_time = next_cmd->scheduled_time + next_cmd->arg;
+          list_insert(pending_commands, new_cmd.scheduled_time, &new_cmd);
+        }
+        break;
+      default:
+        break;
+      }
+      list_remove_head(pending_commands, 0);
+      next_cmd = list_get_head(pending_commands);
+    }
+  }
+}
+
+/*
+ * calling this function from an interrupt context can lead to erratic behaviour
+ * Note: if data is 0, the data in the static msg_buffer will be used
+ */
+uint_fast8_t send_message(uint16_t recipient,
+                          dpp_message_type_t type,
+                          const uint8_t* data,
+                          uint8_t len,
+                          bool send_to_bolt)
 {
   /* separate sequence number for each interface */
   static uint16_t seq_no_lwb  = 0;
@@ -110,168 +275,11 @@ uint_fast8_t send_msg(uint16_t recipient,
   return 0;
 }
 
-/* returns 1 if processed (or dropped), 0 if forwarded */
-uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
-{
-  uint16_t msg_len = DPP_MSG_LEN(msg);
-
-  /* check message type, length and CRC */
-  if (msg->header.type & DPP_MSG_TYPE_MIN ||
-      msg_len > DPP_MSG_PKT_LEN ||
-      msg_len < (DPP_MSG_HDR_LEN + 2) ||
-      msg->header.payload_len == 0 ||
-      DPP_MSG_GET_CRC16(msg) != crc16((uint8_t*)msg, msg_len - 2, 0)) {
-    LOG_ERROR("msg with invalid length or CRC (%ub, type %u)", msg_len, msg->header.type);
-    //EVENT_WARNING(EVENT_CC430_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
-    return 1;
-  }
-  LOG_VERBOSE("msg type: %u, src: %u, len: %uB", msg->header.type, msg->header.device_id, msg_len);
-
-  /* only process the message if target ID matched the node ID */
-  uint16_t forward     = (msg->header.target_id == DPP_DEVICE_ID_BROADCAST);
-  uint8_t  cfg_changed = 0;
-
-  if (msg->header.target_id == NODE_ID || forward) {
-    rcvd_msg_cnt++;
-    if (msg->header.type == DPP_MSG_TYPE_CMD) {
-      scheduled_cmd_t sched_cmd;
-      uint32_t        curr_time;
-      bool successful = false;
-
-      LOG_VERBOSE("command received");
-
-      switch(msg->cmd.type) {
-      case DPP_COMMAND_RESET:
-        if (IS_HOST) {
-          // only reset if message is not a broadcast message
-          if (!forward) {
-            NVIC_SystemReset();
-          }
-        } else {
-          NVIC_SystemReset();
-        }
-        break;
-
-      case CMD_SX1262_BASEBOARD_ENABLE:
-      case CMD_SX1262_BASEBOARD_DISABLE:
-        curr_time = elwb_get_time_sec();
-        sched_cmd.type           = msg->cmd.type;
-        sched_cmd.scheduled_time = msg->cmd.arg32[0];
-        if (msg->cmd.arg[4] > 0) {
-          /* relative time */
-          sched_cmd.scheduled_time += curr_time;
-        } else if (sched_cmd.scheduled_time < curr_time) {
-          /* time is in the past -> ignore command */
-          break;
-        }
-        sched_cmd.arg = msg->cmd.arg[5];
-        list_insert(pending_commands, sched_cmd.scheduled_time, &sched_cmd);
-        successful = true;
-        break;
-
-  #if IS_HOST
-      /* commands that only the host can handle */
-      //case CMD_X:
-      //    successful = 1;
-      //  break;
-  #else
-      /* commands only for source nodes */
-
-  #endif /* IS_HOST */
-      default:
-        /* unknown command */
-        forward = 1;  /* forward to BOLT */
-        break;
-      }
-      /* command successfully executed? */
-      if (successful) {
-        LOG_INFO("cmd %u processed", msg->cmd.type);
-        //uint32_t val = (((uint32_t)arg1) << 16 | msg->cmd.type);
-        //EVENT_INFO(EVENT_CC430_CFG_CHANGED, val);
-        /* if necessary, store the new config in the flash memory */
-        if (cfg_changed) {
-          //nvcfg_save(&cfg);   TODO
-        }
-      }
-  #if IS_HOST
-
-    /* message types only processed by the host */
-    } else if (msg->header.type == DPP_MSG_TYPE_TIMESYNC) {
-      set_master_timestamp(msg->timestamp);
-      LOG_VERBOSE("timestamp %llu received", msg->timestamp);
-
-  #endif /* IS_HOST */
-
-    /* unknown message type */
-    } else {
-
-      if (!IS_HOST) {
-        forward = 1;    /* source nodes forward messages */
-        //EVENT_WARNING(EVENT_CC430_MSG_IGNORED, msg->header.type);
-      }
-    }
-
-  /* target id is not this node -> forward message */
-  } else {
-    forward = 1;
-  }
-
-  /* forward the message */
-  if (forward) {
-    if (rcvd_from_bolt) {
-      /* forward to network */
-      if (!xQueueSend(xQueueHandle_tx, (uint8_t*)msg, 0)) {
-        LOG_ERROR("failed to insert msg into transmit queue");
-      } else {
-        LOG_VERBOSE("msg forwarded to network (type: %u, dest: %u)", msg->header.type, msg->header.target_id);
-      }
-    } else {
-#if BOLT_ENABLE
-      /* forward to BOLT */
-      if (!bolt_write((uint8_t*)msg, msg_len)) {
-        LOG_ERROR("failed to write message to BOLT");
-      } else {
-        LOG_VERBOSE("msg forwarded to BOLT (type: %u, len: %uB)", msg->header.type, msg_len);
-      }
-#endif /* BOLT_ENABLE */
-    }
-    return 0;
-  }
-  return 1;
-}
-
-void process_commands(void)
-{
-  const scheduled_cmd_t* next_cmd = list_get_head(pending_commands);
-  if (next_cmd) {
-    /* there are pending commands */
-    uint32_t curr_time = elwb_get_time_sec();
-    /* anything that needs to be executed now? */
-    while (next_cmd && next_cmd->scheduled_time <= curr_time) {
-      switch (next_cmd->type) {
-      case CMD_SX1262_BASEBOARD_ENABLE:
-        PIN_SET(BASEBOARD_ENABLE);
-        LOG_INFO("baseboard enabled");
-        // TODO send wakeup command
-        break;
-      case CMD_SX1262_BASEBOARD_DISABLE:
-        PIN_CLR(BASEBOARD_ENABLE);
-        LOG_INFO("baseboard disabled");
-        break;
-      default:
-        break;
-      }
-      list_remove_head(pending_commands, 0);
-      next_cmd = list_get_head(pending_commands);
-    }
-  }
-}
-
+/* send the timestamp to the APP processor */
 void send_timestamp(uint64_t trq_timestamp)
 {
-  /* timestamp request: calculate the timestamp and send it over BOLT */
   msg_buffer.timestamp = elwb_get_time(&trq_timestamp);
-  send_msg(NODE_ID, DPP_MSG_TYPE_TIMESYNC, 0, 0, true);
+  send_message(NODE_ID, DPP_MSG_TYPE_TIMESYNC, 0, 0, true);     /* always send to bolt */
   LOG_INFO("timestamp %llu sent", msg_buffer.timestamp);
 }
 
@@ -283,7 +291,9 @@ void send_node_info(void)
   msg_buffer.node_info.compile_date = BUILD_TIME;   // UNIX timestamp
   msg_buffer.node_info.fw_ver       = (uint16_t)(FW_VERSION_MAJOR * 10000 + FW_VERSION_MINOR * 100 + FW_VERSION_PATCH);
   msg_buffer.node_info.rst_cnt      = 0;    // TODO
-  msg_buffer.node_info.rst_flag     = reset_flag;
+  uint32_t rst_flag;
+  system_get_reset_cause(&rst_flag);
+  msg_buffer.node_info.rst_flag     = rst_flag;
   msg_buffer.node_info.sw_rev_id    = GIT_REV_INT;
   memcpy(msg_buffer.node_info.compiler_desc, "GCC", MIN(4, strlen("GCC")));
   memcpy(msg_buffer.node_info.fw_name, FW_NAME, MIN(8, strlen(FW_NAME)));
@@ -291,7 +301,7 @@ void send_node_info(void)
 
   LOG_INFO("node info msg generated");
   /* note: host sends message towards BOLT */
-  send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_NODE_INFO, 0, 0, IS_HOST);
+  send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_NODE_INFO, 0, 0, IS_HOST);
 }
 
 void send_node_health(void)
@@ -333,7 +343,7 @@ void send_node_health(void)
   msg_buffer.com_health.radio_tx_dc   = 0;    // TODO
 
   /* the host must send to BOLT, all other nodes to the network */
-  send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_COM_HEALTH, 0, 0, IS_HOST);
+  send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_COM_HEALTH, 0, 0, IS_HOST);
 
   LOG_INFO("health msg generated");
 }
@@ -358,15 +368,23 @@ void send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val)
     event.type = type;
     event.value = val;
     if (event_msg_target == EVENT_MSG_TARGET_BOLT) {
-      send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, true);
+      send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, true);
       LOG_VERBOSE("event msg sent to BOLT");
     } else if (event_msg_target == EVENT_MSG_TARGET_NETWORK) {
-      send_msg(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, false);
+      send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, false);
       LOG_VERBOSE("event msg sent to LWB");
     } else {
       LOG_WARNING("invalid event target");
     }
   }
+}
+
+/* send a command to the app processor */
+void send_command(dpp_command_type_t cmd, uint32_t arg, uint32_t len)
+{
+  msg_buffer.cmd.type     = cmd;
+  msg_buffer.cmd.arg32[0] = arg;
+  send_message(NODE_ID, DPP_MSG_TYPE_CMD, 0, len, true);    /* always send to bolt */
 }
 
 void set_event_level(event_msg_level_t level)

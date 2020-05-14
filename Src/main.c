@@ -61,8 +61,6 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 
-uint_fast8_t  reset_flag;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -135,8 +133,7 @@ int main(void)
   LOG_INFO("compiler version: %s", __VERSION__);
   LOG_INFO("compile date: %s", __TIMESTAMP__);
   LOG_INFO("node ID: %u", NODE_ID);
-  LOG_INFO("reset flag: 0x%x", RCC->CSR >> 24);
-  RCC->CSR |= (1 << 23);
+  LOG_INFO("reset flag: %s", system_get_reset_cause(0));
 
   system_init();
 

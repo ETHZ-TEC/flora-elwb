@@ -86,11 +86,12 @@ typedef struct {
 
 uint_fast8_t  process_message(dpp_message_t* msg, bool rcvd_from_bolt);
 void          process_commands(void);     /* process pending commands */
+uint_fast8_t  send_message(uint16_t recipient, dpp_message_type_t type, const uint8_t* data, uint8_t len, bool send_to_bolt);
 void          send_node_health(void);
 void          send_node_info(void);
 void          send_timestamp(uint64_t trq_timestamp);
-uint_fast8_t  send_msg(uint16_t recipient, dpp_message_type_t type, const uint8_t* data, uint8_t len, bool send_to_bolt);
 void          send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val);
+void          send_command(dpp_command_type_t cmd, uint32_t arg, uint32_t len);
 void          set_event_level(event_msg_level_t level);
 void          set_event_target(event_msg_target_t target);
 

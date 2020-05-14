@@ -60,7 +60,10 @@ void GPIO_PIN_3_Callback(void)
 void handle_trq(void)
 {
   if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_CC4)) {
-    lptimer_now_synced(&bolt_trq_timestamp, &bolt_trq_hs_timestamp);
+    if (!lptimer_now_synced(&bolt_trq_timestamp, &bolt_trq_hs_timestamp)) {
+      LOG_ERROR("failed to retrieve synchronized timestamps");
+      return;
+    }
     uint32_t curr_ticks       = (uint32_t)bolt_trq_hs_timestamp;
     uint32_t elapsed_hs_ticks = curr_ticks - htim2.Instance->CCR4;
     bolt_trq_hs_timestamp    -= elapsed_hs_ticks;
