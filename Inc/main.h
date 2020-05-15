@@ -42,6 +42,14 @@ extern "C" {
 /* project files */
 #include "message.h"
 
+#ifdef __GNUC__
+  /* only include this file on Linux */
+  #include "gitrev.h"
+#else
+  #define GIT_REV     0
+  #define BUILD_TIME  0
+#endif /* __GNUC__ */
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/

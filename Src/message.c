@@ -8,13 +8,6 @@
 /* functions related to DPP message handling */
 
 #include "main.h"
-#ifdef __GNUC__
-  /* only include this file on Linux */
-  #include "gitrev.h"   /* note: this file should be included here, otherwise all files will be recompiled every time */
-#else
-  #define GIT_REV     0
-  #define BUILD_TIME  0
-#endif /* __GNUC__ */
 
 
 extern QueueHandle_t xQueueHandle_tx;
@@ -93,8 +86,6 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         sched_cmd.arg = msg->cmd.arg16[2];
         if (msg->cmd.type == CMD_SX1262_BASEBOARD_DISABLE && sched_cmd.arg == 0) {
           sched_cmd.arg = 120;    /* use default value of 120 seconds */
-          /* make sure there is an enable command scheduled before accepting this disable command */
-
         }
         list_insert(pending_commands, sched_cmd.scheduled_time, &sched_cmd);
         successful = true;
@@ -185,7 +176,7 @@ void process_commands(void)
           scheduled_cmd_t new_cmd;
           new_cmd.type           = CMD_SX1262_BASEBOARD_DISABLE;
           new_cmd.arg            = 0;
-          new_cmd.scheduled_time = next_cmd->scheduled_time + next_cmd->arg;
+          new_cmd.scheduled_time = curr_time + next_cmd->arg;
           list_insert(pending_commands, new_cmd.scheduled_time, &new_cmd);
         }
         break;
