@@ -68,8 +68,11 @@ void vTask_post(void const * argument)
 
     /* generate a node info message if necessary (must be here) */
     if (!node_info_sent) {
+#if !FLOCKLAB
       uint32_t network_time = elwb_get_time_sec();
-      if (network_time > 1500000000) {    /* wait until we have a valid timestamp */
+      if (network_time > 1500000000)    /* wait until we have a valid timestamp */
+#endif /* FLOCKLAB */
+      {
         send_node_info();
         node_info_sent = true;
       }

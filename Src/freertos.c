@@ -60,8 +60,8 @@ TaskHandle_t xTaskHandle_com  = NULL;
 TaskHandle_t xTaskHandle_post = NULL;
 TaskHandle_t xTaskHandle_idle = NULL;
 /* RTOS Queue Handles */
-QueueHandle_t xQueueHandle_tx = NULL;
-QueueHandle_t xQueueHandle_rx = NULL;
+QueueHandle_t xQueueHandle_tx = NULL;   /* holds the messages to be transmitted over the eLWB network */
+QueueHandle_t xQueueHandle_rx = NULL;   /* holds the messages received from the eLWB network */
 /* Variables */
 bool     round_finished   = false;
 uint64_t active_time      = 0;

@@ -20,7 +20,7 @@
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
 #define FW_VERSION_PATCH                2           /* 0..99 */
-#define FLOCKLAB                        0
+#define FLOCKLAB                        1
 #define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
@@ -115,9 +115,7 @@
     #define ISR_OFF_IND()               PIN_CLR(FLOCKLAB_INT1)
     #define ELWB_RESUMED()              PIN_SET(FLOCKLAB_LED1)
     #define ELWB_SUSPENDED()            PIN_CLR(FLOCKLAB_LED1)
-    #define PRE_TASK_RESUMED()          PIN_SET(FLOCKLAB_LED1)
-    #define PRE_TASK_SUSPENDED()        PIN_CLR(FLOCKLAB_LED1)
-    #define POST_TASK_RESUMED()         PIN_SET(FLOCKLAB_LED1)
+    #define POST_TASK_RESUMED()         PIN_SET(FLOCKLAB_LED1); PIN_CLR(FLOCKLAB_LED1); PIN_SET(FLOCKLAB_LED1)
     #define POST_TASK_SUSPENDED()       PIN_CLR(FLOCKLAB_LED1)
     #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(FLOCKLAB_LED3)
     #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(FLOCKLAB_LED3)
