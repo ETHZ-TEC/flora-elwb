@@ -75,6 +75,9 @@ void vTask_post(void const * argument)
       {
         send_node_info();
         node_info_sent = true;
+
+        /* update RTC time */
+        rtc_set_unix_timestamp(network_time);
       }
     } else if (health_msg_period) {
       /* only send other messages once the node info msg has been sent! */
@@ -83,7 +86,7 @@ void vTask_post(void const * argument)
       uint32_t div = (network_time / (1000000 * health_msg_period));
       if (div != last_health_pkt) {
         /* using a divider instead of the elapsed time will group the health
-        * messages of all nodes together into one round */
+         * messages of all nodes together into one round */
         send_node_health();
         last_health_pkt = div;
       }

@@ -47,6 +47,8 @@ IWDG_HandleTypeDef hiwdg;
 
 LPTIM_HandleTypeDef hlptim1;
 
+RTC_HandleTypeDef hrtc;
+
 SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
 
@@ -77,6 +79,7 @@ static void MX_TIM16_Init(void);
 static void MX_TIM15_Init(void);
 static void MX_LPTIM1_Init(void);
 static void MX_IWDG_Init(void);
+static void MX_RTC_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
@@ -127,6 +130,7 @@ int main(void)
   MX_TIM15_Init();
   MX_LPTIM1_Init();
   MX_IWDG_Init();
+  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
 
   /* print firmware and compiler info as well as the node ID */
@@ -143,7 +147,7 @@ int main(void)
     memset(&config, 0, sizeof(nv_config_t));
     config.node_id = NODE_ID;
   } else {
-    LOG_INFO("config loaded (node ID: %u, reset cnt: %u, bb en sched: %u / %u)", config.node_id, config.rst_cnt, config.bb_en.starttime, config.bb_en.period);
+    LOG_INFO("config loaded (node ID: %u, reset cnt: %u, bb sched: %u / %u)", config.node_id, config.rst_cnt, config.bb_en.starttime, config.bb_en.period);
     config.rst_cnt++;
   }
   if (!nvcfg_save(&config)) {
@@ -246,9 +250,11 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_LPTIM1;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_USART1
+                              |RCC_PERIPHCLK_LPTIM1;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_HSI;
   PeriphClkInit.Lptim1ClockSelection = RCC_LPTIM1CLKSOURCE_LSE;
+  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -321,6 +327,41 @@ static void MX_LPTIM1_Init(void)
   /* USER CODE BEGIN LPTIM1_Init 2 */
   HAL_LPTIM_Counter_Start_IT(&hlptim1, 0xffff);
   /* USER CODE END LPTIM1_Init 2 */
+
+}
+
+/**
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RTC_Init(void)
+{
+
+  /* USER CODE BEGIN RTC_Init 0 */
+
+  /* USER CODE END RTC_Init 0 */
+
+  /* USER CODE BEGIN RTC_Init 1 */
+
+  /* USER CODE END RTC_Init 1 */
+  /** Initialize RTC Only 
+  */
+  hrtc.Instance = RTC;
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  hrtc.Init.AsynchPrediv = 127;
+  hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
+
+  /* USER CODE END RTC_Init 2 */
 
 }
 

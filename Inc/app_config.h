@@ -68,6 +68,7 @@
 
 /* eLWB config */
 #define ELWB_ENABLE                     1
+#define ELWB_CONF_STARTUP_DELAY         4000
 #define ELWB_CONF_N_TX                  2
 #define ELWB_CONF_T_SCHED               (ELWB_TIMER_SECOND / 50)      /* 20ms */
 #define ELWB_CONF_T_DATA                (ELWB_TIMER_SECOND / 50)      /* 20ms */
