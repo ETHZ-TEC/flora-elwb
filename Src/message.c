@@ -20,8 +20,6 @@ static dpp_message_t      msg_buffer;
 static uint32_t           rcvd_msg_cnt     = 0;
 static event_msg_level_t  event_msg_level  = EVENT_MSG_LEVEL;
 static event_msg_target_t event_msg_target = EVENT_MSG_TARGET;
-static uint32_t           periodic_baseboard_enable_time   = 0;
-static uint32_t           periodic_baseboard_enable_period = 0;
 
 LIST_CREATE(pending_commands, sizeof(scheduled_cmd_t), COMMAND_QUEUE_SIZE);
 
@@ -39,15 +37,14 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
       msg_len < (DPP_MSG_HDR_LEN + 2) ||
       msg->header.payload_len == 0 ||
       DPP_MSG_GET_CRC16(msg) != crc16((uint8_t*)msg, msg_len - 2, 0)) {
-    LOG_ERROR("msg with invalid length or CRC (%ub, type %u)", msg_len, msg->header.type);
-    //EVENT_WARNING(EVENT_CC430_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
+    LOG_ERROR("msg with invalid length or CRC (sender %u, len %ub, type 0x%x)", msg->header.device_id, msg_len, msg->header.type);
+    EVENT_WARNING(EVENT_SX1262_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
     return 1;
   }
   LOG_VERBOSE("msg type: %u, src: %u, len: %uB", msg->header.type, msg->header.device_id, msg_len);
 
   /* only process the message if target ID matched the node ID */
   uint16_t forward     = (msg->header.target_id == DPP_DEVICE_ID_BROADCAST);
-  uint8_t  cfg_changed = 0;
 
   if (msg->header.target_id == NODE_ID || forward) {
     rcvd_msg_cnt++;
@@ -60,6 +57,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
       switch(msg->cmd.type) {
       case DPP_COMMAND_RESET:
+      case CMD_SX1262_RESET:
         if (IS_HOST) {
           // only reset if message is not a broadcast message
           if (!forward) {
@@ -88,7 +86,10 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         if (msg->cmd.type == CMD_SX1262_BASEBOARD_ENABLE) {
           sched_cmd.arg = (uint16_t)msg->cmd.arg[6] << 8 | msg->cmd.arg[5];
         }
-        list_insert(pending_commands, sched_cmd.scheduled_time, &sched_cmd);
+        if (!list_insert(pending_commands, sched_cmd.scheduled_time, &sched_cmd)) {
+          LOG_WARNING("failed to add command to queue");
+          EVENT_WARNING(EVENT_SX1262_QUEUE_FULL, 3);
+        }
         successful = true;
         break;
 
@@ -96,12 +97,18 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         if (false && IS_HOST) {   // TODO remove 'false'
           break;    /* host node is not supposed to turn off the baseboard */
         }
-        periodic_baseboard_enable_period = (uint32_t)msg->cmd.arg16[1] * 60;  /* convert to seconds */
-        if (periodic_baseboard_enable_period > 0) {
-          periodic_baseboard_enable_time = get_next_timestamp_at_daytime(0, msg->cmd.arg[0], msg->cmd.arg[1], 0);
+        config.bb_en.period = (uint32_t)msg->cmd.arg16[1] * 60;  /* convert to seconds */
+        if (config.bb_en.period > 0) {
+          config.bb_en.starttime = get_next_timestamp_at_daytime(0, msg->cmd.arg[0], msg->cmd.arg[1], 0);
+          if (config.bb_en.starttime > 0) {
+            LOG_INFO("periodic baseboard enable scheduled (next: %u, period: %us)", config.bb_en.starttime, config.bb_en.period);
+          } else {
+            LOG_WARNING("invalid parameters for periodic enable cmd");
+          }
         } else {
-          periodic_baseboard_enable_time = 0;
+          config.bb_en.starttime = 0;
         }
+        successful = true;
         break;
 
       default:
@@ -111,13 +118,10 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
       }
       /* command successfully executed? */
       if (successful) {
-        LOG_INFO("cmd %u processed", msg->cmd.type);
-        //uint32_t val = (((uint32_t)arg1) << 16 | msg->cmd.type);
-        //EVENT_INFO(EVENT_CC430_CFG_CHANGED, val);
-        /* if necessary, store the new config in the flash memory */
-        if (cfg_changed) {
-          //nvcfg_save(&cfg);   TODO
-        }
+        LOG_INFO("cmd 0x%x processed", msg->cmd.type & 0xff);
+        EVENT_INFO(EVENT_SX1262_CMD_EXECUTED, msg->cmd.type & 0xff);
+      } else {
+        EVENT_WARNING(EVENT_SX1262_INV_CMD, msg->cmd.type);
       }
 
 #if BOLT_ENABLE
@@ -132,8 +136,8 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
       if (!IS_HOST) {
         forward = 1;    /* source nodes forward messages */
-        //EVENT_WARNING(EVENT_CC430_MSG_IGNORED, msg->header.type);
       }
+      EVENT_WARNING(EVENT_SX1262_MSG_IGNORED, msg->header.type);
     }
 
   /* target id is not this node -> forward message */
@@ -175,12 +179,12 @@ void process_commands(void)
     while (next_cmd && next_cmd->scheduled_time <= curr_time) {
       switch (next_cmd->type) {
       case CMD_SX1262_BASEBOARD_ENABLE:
-        //PIN_SET(BASEBOARD_ENABLE);    //TODO uncomment
+        PIN_SET(BASEBOARD_ENABLE);
         LOG_INFO("baseboard enabled");
         send_command(CMD_BASEBOARD_WAKEUP_MODE, next_cmd->arg, 2);
         break;
       case CMD_SX1262_BASEBOARD_DISABLE:
-        //PIN_CLR(BASEBOARD_ENABLE);    //TODO uncomment
+        PIN_CLR(BASEBOARD_ENABLE);
         LOG_INFO("baseboard disabled");
         break;
       default:
@@ -191,10 +195,10 @@ void process_commands(void)
     }
   }
   /* check the periodic baseboard enable */
-  if (periodic_baseboard_enable_time > 0 && periodic_baseboard_enable_time <= curr_time) {
-    //PIN_SET(BASEBOARD_ENABLE);    //TODO uncomment
-    periodic_baseboard_enable_time += periodic_baseboard_enable_period;
-    LOG_INFO("baseboard enabled, next wakeup scheduled (in %us)", periodic_baseboard_enable_period);
+  if (config.bb_en.starttime > 0 && config.bb_en.starttime <= curr_time) {
+    PIN_SET(BASEBOARD_ENABLE);
+    config.bb_en.starttime += config.bb_en.period;
+    LOG_INFO("baseboard enabled, next wakeup scheduled (in %us)", config.bb_en.period);
   }
 }
 
@@ -215,7 +219,7 @@ uint_fast8_t send_message(uint16_t recipient,
   /* check message length */
   if (len > DPP_MSG_PAYLOAD_LEN) {
     LOG_WARNING("invalid message length");
-    //EVENT_WARNING(EVENT_CC430_INV_MSG, ((uint32_t)type) << 16 | 0xff00 | len);
+    EVENT_WARNING(EVENT_SX1262_INV_MSG, ((uint32_t)type) << 16 | len);
     return 0;
   }
 
@@ -401,6 +405,10 @@ uint32_t get_next_timestamp_at_daytime(time_t curr_time, uint32_t hour, uint32_t
 {
   struct tm ts;
 
+  /* make sure the values are within the valid range */
+  if (hour > 23 || minute > 59 || second > 59) {
+    return 0;
+  }
   if (curr_time == 0) {
     curr_time = (time_t)elwb_get_time_sec();
   }

@@ -73,6 +73,11 @@ typedef struct {
   uint32_t            scheduled_time;
 } scheduled_cmd_t;
 
+typedef struct {
+  uint32_t starttime;
+  uint32_t period;
+} periodic_t;
+
 
 /* --- macros --- */
 

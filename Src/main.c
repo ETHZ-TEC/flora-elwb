@@ -61,6 +61,8 @@ DMA_HandleTypeDef hdma_usart1_tx;
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 
+nv_config_t config;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -134,6 +136,19 @@ int main(void)
   LOG_INFO("compile date: %s", __TIMESTAMP__);
   LOG_INFO("node ID: %u", NODE_ID);
   LOG_INFO("reset flag: %s", system_get_reset_cause(0));
+
+  /* load the config struct */
+  if (!nvcfg_load(&config) || (config.node_id == 0 && config.rst_cnt == 0)) {
+    LOG_WARNING("failed to load config (default config applied)");
+    memset(&config, 0, sizeof(nv_config_t));
+    config.node_id = NODE_ID;
+  } else {
+    LOG_INFO("config loaded (node ID: %u, reset cnt: %u, bb en sched: %u / %u)", config.node_id, config.rst_cnt, config.bb_en.starttime, config.bb_en.period);
+    config.rst_cnt++;
+  }
+  if (!nvcfg_save(&config)) {
+    LOG_ERROR("failed to save config");
+  }
 
   system_init();
 

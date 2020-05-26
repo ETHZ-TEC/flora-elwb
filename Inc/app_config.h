@@ -21,7 +21,7 @@
 #define FW_VERSION_MINOR                1           /* 0..99 */
 #define FW_VERSION_PATCH                3           /* 0..99 */
 #define FLOCKLAB                        0
-#define BASEBOARD                       1
+#define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
@@ -58,6 +58,10 @@
 #define RECEIVE_QUEUE_SIZE              ELWB_CONF_MAX_DATA_SLOTS        /* #messages */
 #define COMMAND_QUEUE_SIZE              10
 
+/* non-volatile config storage */
+#define NVCFG_ENABLE                    1    /* use non-volatile config storage */
+#define NVCFG_BLOCK_SIZE                16   /* note: must be sizeof(nv_config_t)! */
+
 /* Gloria config */
 #define GLORIA_INTERFACE_MODULATION     10   /* FSK 250kbit/s */
 #define GLORIA_INTERFACE_RF_BAND        48   /* 869.46 MHz (see table in radio_constants.c for options) */
@@ -88,6 +92,7 @@
 #define LPTIMER_RESET_WDG_ON_OVF        1
 #define LPTIMER_CHECK_EXP_TIME          1
 #define UART_FIFO_BUFFER_SIZE           1     /* not used */
+#define CONFIG_ENABLE                   0     /* not used */
 
 /* logging */
 #define LOG_ENABLE                      1

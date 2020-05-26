@@ -124,6 +124,7 @@ void update_time(void)
     if (delta > (TIMESTAMP_MAX_OFFSET_MS * 1000) || delta < -(TIMESTAMP_MAX_OFFSET_MS * 1000)) {
       elwb_sched_set_time(new_time_us);
       LOG_INFO("timestamp adjusted to %llu", new_time_us);
+      EVENT_INFO(EVENT_SX1262_TIME_UPDATED, delta);
     } else {
       if (delta > 500) {
         /* slow down the clock speed to compensate the offset */

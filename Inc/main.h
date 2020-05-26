@@ -84,11 +84,22 @@ typedef enum
   NUM_LP_MODES,
 } lp_mode_t;
 
+/* note: size must be equal to NVCFG_BLOCK_SIZE! */
+typedef struct
+{
+  uint16_t    node_id;      /* node ID */
+  uint16_t    rst_cnt;      /* reset counter */
+  periodic_t  bb_en;        /* periodic baseboard enable schedule */
+  uint32_t    reserved;
+} nv_config_t;              /* non-volatile configuration */
+
 
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+
+extern nv_config_t config;
 
 #if BOLT_ENABLE
 extern SPI_HandleTypeDef hspi1;
