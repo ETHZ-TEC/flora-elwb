@@ -20,6 +20,8 @@ static dpp_message_t      msg_buffer;
 static uint32_t           rcvd_msg_cnt     = 0;
 static event_msg_level_t  event_msg_level  = EVENT_MSG_LEVEL;
 static event_msg_target_t event_msg_target = EVENT_MSG_TARGET;
+static uint32_t           periodic_baseboard_enable_time   = 0;
+static uint32_t           periodic_baseboard_enable_period = 0;
 
 LIST_CREATE(pending_commands, sizeof(scheduled_cmd_t), COMMAND_QUEUE_SIZE);
 
@@ -70,25 +72,36 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
       case CMD_SX1262_BASEBOARD_ENABLE:
       case CMD_SX1262_BASEBOARD_DISABLE:
-        if (IS_HOST) {
+        if (false && IS_HOST) {   // TODO remove 'false'
           break;    /* host node is not supposed to turn off the baseboard */
         }
         curr_time = elwb_get_time_sec();
         sched_cmd.type           = msg->cmd.type;
         sched_cmd.scheduled_time = msg->cmd.arg32[0];
-        if (msg->cmd.arg[4] > 0) {
+        if (msg->cmd.arg[4] & 1) {
           /* relative time */
           sched_cmd.scheduled_time += curr_time;
         } else if (sched_cmd.scheduled_time < curr_time) {
           /* time is in the past -> ignore command */
           break;
         }
-        sched_cmd.arg = msg->cmd.arg16[2];
-        if (msg->cmd.type == CMD_SX1262_BASEBOARD_DISABLE && sched_cmd.arg == 0) {
-          sched_cmd.arg = 120;    /* use default value of 120 seconds */
+        if (msg->cmd.type == CMD_SX1262_BASEBOARD_ENABLE) {
+          sched_cmd.arg = (uint16_t)msg->cmd.arg[6] << 8 | msg->cmd.arg[5];
         }
         list_insert(pending_commands, sched_cmd.scheduled_time, &sched_cmd);
         successful = true;
+        break;
+
+      case CMD_SX1262_BASEBOARD_ENABLE_PERIODIC:
+        if (false && IS_HOST) {   // TODO remove 'false'
+          break;    /* host node is not supposed to turn off the baseboard */
+        }
+        periodic_baseboard_enable_period = (uint32_t)msg->cmd.arg16[1] * 60;  /* convert to seconds */
+        if (periodic_baseboard_enable_period > 0) {
+          periodic_baseboard_enable_time = get_next_timestamp_at_daytime(0, msg->cmd.arg[0], msg->cmd.arg[1], 0);
+        } else {
+          periodic_baseboard_enable_time = 0;
+        }
         break;
 
       default:
@@ -154,33 +167,21 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
 void process_commands(void)
 {
+  uint32_t curr_time = elwb_get_time_sec();
   const scheduled_cmd_t* next_cmd = list_get_head(pending_commands);
   if (next_cmd) {
     /* there are pending commands */
-    uint32_t curr_time = elwb_get_time_sec();
     /* anything that needs to be executed now? */
     while (next_cmd && next_cmd->scheduled_time <= curr_time) {
       switch (next_cmd->type) {
       case CMD_SX1262_BASEBOARD_ENABLE:
-        //PIN_SET(BASEBOARD_ENABLE);
+        //PIN_SET(BASEBOARD_ENABLE);    //TODO uncomment
         LOG_INFO("baseboard enabled");
         send_command(CMD_BASEBOARD_WAKEUP_MODE, next_cmd->arg, 2);
         break;
       case CMD_SX1262_BASEBOARD_DISABLE:
-        if (next_cmd->arg == 0) {
-          //PIN_CLR(BASEBOARD_ENABLE);
-          LOG_INFO("baseboard disabled");
-        } else {
-          /* send shutdown notification to baseboard before turning off the power */
-          send_command(CMD_BASEBOARD_POWEROFF, 0, 0);
-          LOG_INFO("shutdown command sent");
-          /* schedule the power off */
-          scheduled_cmd_t new_cmd;
-          new_cmd.type           = CMD_SX1262_BASEBOARD_DISABLE;
-          new_cmd.arg            = 0;
-          new_cmd.scheduled_time = curr_time + next_cmd->arg;
-          list_insert(pending_commands, new_cmd.scheduled_time, &new_cmd);
-        }
+        //PIN_CLR(BASEBOARD_ENABLE);    //TODO uncomment
+        LOG_INFO("baseboard disabled");
         break;
       default:
         break;
@@ -188,6 +189,12 @@ void process_commands(void)
       list_remove_head(pending_commands, 0);
       next_cmd = list_get_head(pending_commands);
     }
+  }
+  /* check the periodic baseboard enable */
+  if (periodic_baseboard_enable_time > 0 && periodic_baseboard_enable_time <= curr_time) {
+    //PIN_SET(BASEBOARD_ENABLE);    //TODO uncomment
+    periodic_baseboard_enable_time += periodic_baseboard_enable_period;
+    LOG_INFO("baseboard enabled, next wakeup scheduled (in %us)", periodic_baseboard_enable_period);
   }
 }
 
@@ -390,3 +397,22 @@ void set_event_target(event_msg_target_t target)
   event_msg_target = target;
 }
 
+uint32_t get_next_timestamp_at_daytime(time_t curr_time, uint32_t hour, uint32_t minute, uint32_t second)
+{
+  struct tm ts;
+
+  if (curr_time == 0) {
+    curr_time = (time_t)elwb_get_time_sec();
+  }
+  /* split up the UNIX timestamp into components */
+  gmtime_r(&curr_time, &ts);
+  ts.tm_hour = hour;
+  ts.tm_min  = minute;
+  ts.tm_sec  = second;
+  /* convert back to UNIX timestamp */
+  uint32_t timestamp = mktime(&ts);
+  if (timestamp <= curr_time) {
+    timestamp += 86400;           /* add one day */
+  }
+  return timestamp;
+}

@@ -94,6 +94,7 @@ void          send_event(event_msg_level_t level, dpp_event_type_t type, uint32_
 void          send_command(dpp_command_type_t cmd, uint32_t arg, uint32_t len);
 void          set_event_level(event_msg_level_t level);
 void          set_event_target(event_msg_target_t target);
+uint32_t      get_next_timestamp_at_daytime(time_t curr_time, uint32_t hour, uint32_t minute, uint32_t second);
 
 
 #endif /* __MESSAGE_H */
