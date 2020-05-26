@@ -19,9 +19,9 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                2           /* 0..99 */
-#define FLOCKLAB                        1
-#define BASEBOARD                       0
+#define FW_VERSION_PATCH                3           /* 0..99 */
+#define FLOCKLAB                        0
+#define BASEBOARD                       1
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
@@ -44,11 +44,7 @@
 #define TIMESTAMP_TYPICAL_DRIFT         100   /* typical drift +/- in ppm (if exceeded, a warning will be issued) */
 #define TIMESTAMP_MAX_DRIFT             150   /* max. allowed drift in ppm (higher values will be capped) */
 #define TIMESTAMP_MAX_OFFSET_MS         10    /* max. allowed offset in ms that the host tries to compensate; if larger, a jump in time occurs. set to 0 to always make a jump */
-#if LOW_POWER_MODE == LP_MODE_SLEEP
-  #define TIMESTAMP_USE_HS_TIMER        1     /* use hs_timer for timestamping events on the TREQ pin */
-#else
-  #define TIMESTAMP_USE_HS_TIMER        0     /* don't use hs_timer for timestamping events on the TREQ pin */
-#endif /* LP_MODE_SLEEP */
+#define TIMESTAMP_USE_HS_TIMER          (LOW_POWER_MODE == LP_MODE_SLEEP)   /* don't use hs_timer for timestamping events on the TREQ pin if LPM != SLEEP */
 
 /* data collection config */
 #define NODE_HEALTH_MSG_PERIOD          300
@@ -76,6 +72,16 @@
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_IS_HOST()                  IS_HOST
+#if FLOCKLAB
+  #define ELWB_CONF_T_PREPROCESS        0     /* no pre task */
+#endif /* FLOCKLAB */
+
+/* baseboard */
+#if BASEBOARD
+  #define BASEBOARD_TREQ_WATCHDOG       3600  /* if != 0, the baseboard will be power-cycled if no time request has been received within the specified #seconds */
+#else /* BASEBOARD_TREQ_WATCHDOG */
+  #define BASEBOARD_TREQ_WATCHDOG       0
+#endif /* BASEBOARD_TREQ_WATCHDOG */
 
 /* misc */
 #define HS_TIMER_COMPENSATE_DRIFT       0
@@ -149,6 +155,10 @@
 
 #if FLOCKLAB && (HOST_ID < 2 || HOST_ID > 12)
 #error "HOST_ID is invalid for target FLOCKLAB"
+#endif
+
+#if BASEBOARD_TREQ_WATCHDOG > 0 && BASEBOARD_TREQ_WATCHDOG < 3600
+#error "BASEBOARD_TREQ_WATCHDOG must be >= 3600"
 #endif
 
 #endif /* __APP_CONFIG_H */

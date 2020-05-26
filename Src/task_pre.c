@@ -203,6 +203,33 @@ void vTask_pre(void const * argument)
       update_time();
     }
 
+#if BASEBOARD_TREQ_WATCHDOG
+  #if TIMESTAMP_USE_HS_TIMER
+    /* check when was the last time we got a time request */
+    if (((hs_timer_now() - bolt_trq_hs_timestamp) / HS_TIMER_FREQUENCY) > BASEBOARD_TREQ_WATCHDOG) {
+      /* power cycle the baseboard (only if not turned off) */
+      if (PIN_GET(BASEBOARD_ENABLE)) {
+        LOG_WARNING("power-cycling baseboard (TREQ watchdog)");
+        PIN_CLR(BASEBOARD_ENABLE);
+        delay_us(1000);
+        PIN_SET(BASEBOARD_ENABLE);
+      }
+      bolt_trq_hs_timestamp = hs_timer_now();
+    }
+  #else /* TIMESTAMP_USE_HS_TIMER */
+    if (((lptimer_now() - bolt_trq_timestamp) / LPTIMER_SECOND) > BASEBOARD_TREQ_WATCHDOG) {
+      /* power cycle the baseboard (only if not turned off) */
+      if (PIN_GET(BASEBOARD_ENABLE)) {
+        LOG_WARNING("power-cycling baseboard (TREQ watchdog)");
+        PIN_CLR(BASEBOARD_ENABLE);
+        delay_us(1000);
+        PIN_SET(BASEBOARD_ENABLE);
+      }
+      bolt_trq_hs_timestamp = lptimer_now();
+    }
+  #endif /* TIMESTAMP_USE_HS_TIMER */
+#endif /* BASEBOARD_TREQ_WATCHDOG */
+
     LOG_VERBOSE("pre task executed");
   }
 }

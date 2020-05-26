@@ -73,8 +73,11 @@ void lpm_prepare(void)
   if (op_mode == OP_MODE_IDLE)
   {
     if (lp_mode == LP_MODE_SLEEP) {
-      /* do not update op_mode since we are already in IDLE and we are not entering a real LPM state */
+      /* make sure the radio is in sleep mode */
+      radio_sleep(false);
+      /* stop the HAL tick */
       HAL_SuspendTick();
+      /* do not update op_mode since we are already in IDLE and we are not entering a real LPM state */
     }
     else if ((lp_mode == LP_MODE_STOP2)   ||
              (lp_mode == LP_MODE_STANDBY) ||
@@ -215,6 +218,8 @@ void lpm_resume(void)
   if (op_mode == OP_MODE_IDLE) {
     /* MCU was in sleep mode, only tick needs to be restored */
     HAL_ResumeTick();
+    /* wake the radio */
+    radio_wakeup();
     /* do not update op_mode since we are already in IDLE */
   }
   else if (op_mode == OP_MODE_WOKEN) {
