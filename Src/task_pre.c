@@ -68,7 +68,7 @@ void handle_trq(void)
     uint32_t elapsed_hs_ticks = curr_ticks - htim2.Instance->CCR4;
     bolt_trq_hs_timestamp    -= elapsed_hs_ticks;
     bolt_trq_timestamp       -= (elapsed_hs_ticks / (HS_TIMER_FREQUENCY / LPTIMER_SECOND));
-    LOG_VERBOSE("timestamp request received %lums ago, timestamp is %llu", (elapsed_hs_ticks / (HS_TIMER_FREQUENCY / 1000)), bolt_trq_timestamp);
+    LOG_VERBOSE("timestamp request received %lums ago", (elapsed_hs_ticks / (HS_TIMER_FREQUENCY / 1000)));
 
     __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_CC4);      /* clear capture compare interrupt flag */
     __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_CC4OF);    /* clear capture overrun flag */
@@ -110,12 +110,8 @@ void update_time(void)
       elwb_set_drift(average_drift);
     }
 
-    /* calculate the global time at the point where the next flood starts */
-  #if TIMESTAMP_USE_HS_TIMER
-    uint64_t new_time_us = master_timestamp + (lptimer_get() - bolt_trq_hs_timestamp) * 1000000 / HS_TIMER_FREQUENCY;
-  #else /* TIMESTAMP_USE_HS_TIMER */
+    /* calculate the global time at the point where the next flood starts (note: use lptimer here in any case) */
     uint64_t new_time_us = master_timestamp + (lptimer_get() - bolt_trq_timestamp) * 1000000 / LPTIMER_SECOND;
-  #endif /* TIMESTAMP_USE_HS_TIMER */
 
   #if TIMESTAMP_MAX_OFFSET_MS > 0
     /* calculate the difference between the actual time and the current network time */
@@ -206,16 +202,16 @@ void vTask_pre(void const * argument)
 
 #if BASEBOARD_TREQ_WATCHDOG
     /* only use time request watchdog when baseboard is enabled */
-    if (PIN_GET(BASEBOARD_ENABLE)) {
+    if (PIN_STATE(BASEBOARD_ENABLE)) {
   #if TIMESTAMP_USE_HS_TIMER
       bool powercycle = false;
       /* check when was the last time we got a time request */
-      if (bolt_trq_hs_timestamp > 0 && (((hs_timer_now() - bolt_trq_hs_timestamp) / HS_TIMER_FREQUENCY) > BASEBOARD_TREQ_WATCHDOG)) {
+      if (((hs_timer_now() - bolt_trq_hs_timestamp) / HS_TIMER_FREQUENCY) > BASEBOARD_TREQ_WATCHDOG) {
         bolt_trq_hs_timestamp = hs_timer_now();
         powercycle = true;
       }
   #else /* TIMESTAMP_USE_HS_TIMER */
-      if (bolt_trq_timestamp > 0 && (((lptimer_now() - bolt_trq_timestamp) / LPTIMER_SECOND) > BASEBOARD_TREQ_WATCHDOG)) {
+      if (((lptimer_now() - bolt_trq_timestamp) / LPTIMER_SECOND) > BASEBOARD_TREQ_WATCHDOG) {
         bolt_trq_timestamp = lptimer_now();
         powercycle = true;
       }
@@ -224,12 +220,20 @@ void vTask_pre(void const * argument)
         /* power cycle the baseboard */
         LOG_WARNING("power-cycling baseboard (TREQ watchdog)");
         PIN_CLR(BASEBOARD_ENABLE);
-        delay_us(1000);
-        PIN_SET(BASEBOARD_ENABLE);
+        /* enable pin must be kept low for ~1s -> schedule pin release */
+        if (!schedule_command(0, CMD_SX1262_BASEBOARD_ENABLE, 0)) {  /* scheduled time can be 0, i.e. it will be executed in the next post_task run */
+          /* we must wait and release the reset here */
+          LOG_WARNING("failed to schedule baseboard enable");
+          delay_us(60000);
+          PIN_SET(BASEBOARD_ENABLE);
+        }
       }
     } else {
-      bolt_trq_hs_timestamp = 0;
-      bolt_trq_timestamp = 0;
+  #if TIMESTAMP_USE_HS_TIMER
+      bolt_trq_hs_timestamp = hs_timer_now();
+  #else /* TIMESTAMP_USE_HS_TIMER */
+      bolt_trq_timestamp = lptimer_now();
+  #endif /* TIMESTAMP_USE_HS_TIMER */
     }
 #endif /* BASEBOARD_TREQ_WATCHDOG */
 
