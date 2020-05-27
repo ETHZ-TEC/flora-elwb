@@ -75,9 +75,6 @@ void vTask_post(void const * argument)
       {
         send_node_info();
         node_info_sent = true;
-
-        /* update RTC time */
-        rtc_set_unix_timestamp(network_time);
       }
     } else if (health_msg_period) {
       /* only send other messages once the node info msg has been sent! */
@@ -94,6 +91,14 @@ void vTask_post(void const * argument)
 
     /* process pending commands */
     process_commands();
+
+    /* update RTC time */
+    uint32_t rtctime  = rtc_get_unix_timestamp();
+    uint32_t currtime = elwb_get_time_sec();
+    if (rtctime != currtime) {
+      rtc_set_unix_timestamp(elwb_get_time_sec() + 1);
+      LOG_INFO("RTC timestamp updated to %lu, was %lu", currtime, rtctime);
+    }
 
     /* check stack watermarks (store the used words) */
     unsigned long idleSWM = configMINIMAL_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_idle));

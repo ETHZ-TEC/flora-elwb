@@ -21,7 +21,7 @@
 #define FW_VERSION_MINOR                1           /* 0..99 */
 #define FW_VERSION_PATCH                4           /* 0..99 */
 #define FLOCKLAB                        0
-#define BASEBOARD                       0
+#define BASEBOARD                       1
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
@@ -79,6 +79,8 @@
 #define ELWB_IS_HOST()                  IS_HOST
 #if FLOCKLAB
   #define ELWB_CONF_T_PREPROCESS        0     /* no pre task */
+#else
+  #define ELWB_CONF_T_PREPROCESS        (ELWB_TIMER_SECOND / 10)      /* 100ms */
 #endif /* FLOCKLAB */
 
 /* baseboard */
@@ -90,6 +92,7 @@
 
 /* misc */
 #define HS_TIMER_COMPENSATE_DRIFT       0
+#define HS_TIMER_INIT_FROM_RTC          0
 #define LPTIMER_RESET_WDG_ON_OVF        1
 #define LPTIMER_CHECK_EXP_TIME          1
 #define UART_FIFO_BUFFER_SIZE           1     /* not used */
@@ -163,8 +166,8 @@
 #error "HOST_ID is invalid for target FLOCKLAB"
 #endif
 
-#if BASEBOARD_TREQ_WATCHDOG > 0 && BASEBOARD_TREQ_WATCHDOG < 3600
-#error "BASEBOARD_TREQ_WATCHDOG must be >= 3600"
+#if BASEBOARD_TREQ_WATCHDOG > 0 && BASEBOARD_TREQ_WATCHDOG < 120
+#error "BASEBOARD_TREQ_WATCHDOG must be >= 120"
 #endif
 
 #endif /* __APP_CONFIG_H */

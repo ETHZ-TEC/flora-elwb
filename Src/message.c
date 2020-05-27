@@ -89,6 +89,8 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         if (!list_insert(pending_commands, sched_cmd.scheduled_time, &sched_cmd)) {
           LOG_WARNING("failed to add command to queue");
           EVENT_WARNING(EVENT_SX1262_QUEUE_FULL, 3);
+        } else {
+          LOG_VERBOSE("baseboard enable / disable command scheduled (time: %lu, wakeup flag: %u)", sched_cmd.scheduled_time, sched_cmd.arg);
         }
         successful = true;
         break;
@@ -184,7 +186,7 @@ void process_commands(void)
         send_command(CMD_BASEBOARD_WAKEUP_MODE, next_cmd->arg, 2);
         break;
       case CMD_SX1262_BASEBOARD_DISABLE:
-        PIN_CLR(BASEBOARD_ENABLE);
+        //PIN_CLR(BASEBOARD_ENABLE);
         LOG_INFO("baseboard disabled");
         break;
       default:
@@ -294,7 +296,7 @@ void send_node_info(void)
   msg_buffer.node_info.compiler_ver = (__GNUC__ * 1000000 + __GNUC_MINOR__ * 1000 + __GNUC_PATCHLEVEL__);
   msg_buffer.node_info.compile_date = BUILD_TIME;   // UNIX timestamp
   msg_buffer.node_info.fw_ver       = (uint16_t)(FW_VERSION_MAJOR * 10000 + FW_VERSION_MINOR * 100 + FW_VERSION_PATCH);
-  msg_buffer.node_info.rst_cnt      = 0;    // TODO
+  msg_buffer.node_info.rst_cnt      = config.rst_cnt;
   uint32_t rst_flag;
   system_get_reset_cause(&rst_flag);
   msg_buffer.node_info.rst_flag     = rst_flag;
@@ -389,6 +391,17 @@ void send_command(dpp_command_type_t cmd, uint32_t arg, uint32_t len)
   msg_buffer.cmd.type     = cmd;
   msg_buffer.cmd.arg32[0] = arg;
   send_message(NODE_ID, DPP_MSG_TYPE_CMD, 0, len, true);    /* always send to bolt */
+}
+
+bool schedule_command(uint32_t sched_time, dpp_command_type_t cmd_type, uint16_t arg)
+{
+  scheduled_cmd_t cmd;
+
+  cmd.scheduled_time = sched_time;
+  cmd.type           = cmd_type;
+  cmd.arg            = arg;
+
+  return list_insert(pending_commands, sched_time, &cmd);
 }
 
 void set_event_level(event_msg_level_t level)
