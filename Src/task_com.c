@@ -23,7 +23,10 @@ void vTask_com(void const * argument)
 {
   LOG_INFO("eLWB task started");
 
-  // TODO postpone start of eLWB on host node until a valid UNIX timestamp has been received!
+  /* load the UNIX timestamp from the RTC, convert it to microseconds and add the static startup delay */
+  uint32_t currtime = rtc_get_unix_timestamp();
+  LOG_INFO("timestamp %lu loaded from the RTC", currtime);
+  elwb_sched_set_time((uint64_t)currtime * 1000000 + ELWB_CONF_STARTUP_DELAY * 1000);
 
   /* start eLWB */
   elwb_start(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx);

@@ -19,7 +19,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                3           /* 0..99 */
+#define FW_VERSION_PATCH                4           /* 0..99 */
 #define FLOCKLAB                        0
 #define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
