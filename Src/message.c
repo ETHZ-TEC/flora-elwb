@@ -33,9 +33,9 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
   /* check message type, length and CRC */
   if (msg->header.type & DPP_MSG_TYPE_MIN ||
-      msg_len > DPP_MSG_PKT_LEN ||
-      msg_len < (DPP_MSG_HDR_LEN + 2) ||
-      msg->header.payload_len == 0 ||
+      msg_len > DPP_MSG_PKT_LEN           ||
+      msg_len < (DPP_MSG_HDR_LEN + 2)     ||
+      msg->header.payload_len == 0        ||
       DPP_MSG_GET_CRC16(msg) != crc16((uint8_t*)msg, msg_len - 2, 0)) {
     LOG_ERROR("msg with invalid length or CRC (sender %u, len %ub, type 0x%x)", msg->header.device_id, msg_len, msg->header.type);
     EVENT_WARNING(EVENT_SX1262_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
@@ -115,7 +115,9 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
       default:
         /* unknown command */
-        forward = 1;  /* forward to BOLT */
+        if (!IS_HOST) {
+          forward = 1;  /* forward to BOLT */
+        }
         break;
       }
       /* command successfully executed? */
@@ -183,7 +185,7 @@ void process_commands(void)
       case CMD_SX1262_BASEBOARD_ENABLE:
         PIN_SET(BASEBOARD_ENABLE);
         LOG_INFO("baseboard enabled");
-        send_command(CMD_BASEBOARD_WAKEUP_MODE, next_cmd->arg, 2);
+        send_command(CMD_BASEBOARD_WAKEUP_MODE, next_cmd->arg, 4);
         break;
       case CMD_SX1262_BASEBOARD_DISABLE:
         //PIN_CLR(BASEBOARD_ENABLE);
