@@ -50,7 +50,6 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
     rcvd_msg_cnt++;
     if (msg->header.type == DPP_MSG_TYPE_CMD) {
       scheduled_cmd_t sched_cmd;
-      uint32_t        curr_time;
       bool successful = false;
 
       LOG_VERBOSE("command received");
@@ -73,15 +72,11 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         if (false && IS_HOST) {   // TODO remove 'false'
           break;    /* host node is not supposed to turn off the baseboard */
         }
-        curr_time = elwb_get_time_sec();
         sched_cmd.type           = msg->cmd.type;
         sched_cmd.scheduled_time = msg->cmd.arg32[0];
         if (msg->cmd.arg[4] & 1) {
-          /* relative time */
-          sched_cmd.scheduled_time += curr_time;
-        } else if (sched_cmd.scheduled_time < curr_time) {
-          /* time is in the past -> ignore command */
-          break;
+          /* relative time -> append generation time */
+          sched_cmd.scheduled_time += msg->header.generation_time / 1000000;
         }
         if (msg->cmd.type == CMD_SX1262_BASEBOARD_ENABLE) {
           sched_cmd.arg = (uint16_t)msg->cmd.arg[6] << 8 | msg->cmd.arg[5];
