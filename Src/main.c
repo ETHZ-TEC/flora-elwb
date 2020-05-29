@@ -88,7 +88,23 @@ void StartDefaultTask(void const * argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void load_config(void)
+{
+#if !FLOCKLAB
+  /* load the config struct */
+  if (!nvcfg_load(&config) || (config.node_id == 0 && config.rst_cnt == 0)) {
+    LOG_WARNING("failed to load config (default config applied)");
+    memset(&config, 0, sizeof(nv_config_t));
+    config.node_id = NODE_ID;
+  } else {
+    LOG_INFO("config loaded (node ID: %u, reset cnt: %u, bb sched: %u / %u)", config.node_id, config.rst_cnt, config.bb_en.starttime, config.bb_en.period);
+    config.rst_cnt++;
+  }
+  if (!nvcfg_save(&config)) {
+    LOG_ERROR("failed to save config");
+  }
+#endif /* FLOCKLAB */
+}
 /* USER CODE END 0 */
 
 /**
@@ -141,18 +157,7 @@ int main(void)
   LOG_INFO("node ID: %u", NODE_ID);
   LOG_INFO("reset flag: %s", system_get_reset_cause(0));
 
-  /* load the config struct */
-  if (!nvcfg_load(&config) || (config.node_id == 0 && config.rst_cnt == 0)) {
-    LOG_WARNING("failed to load config (default config applied)");
-    memset(&config, 0, sizeof(nv_config_t));
-    config.node_id = NODE_ID;
-  } else {
-    LOG_INFO("config loaded (node ID: %u, reset cnt: %u, bb sched: %u / %u)", config.node_id, config.rst_cnt, config.bb_en.starttime, config.bb_en.period);
-    config.rst_cnt++;
-  }
-  if (!nvcfg_save(&config)) {
-    LOG_ERROR("failed to save config");
-  }
+  load_config();
 
   system_init();
 
