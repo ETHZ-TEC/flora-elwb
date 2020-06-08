@@ -24,8 +24,15 @@ void vTask_com(void const * argument)
   LOG_INFO("eLWB task started");
 
   /* load the UNIX timestamp from the RTC, convert it to microseconds and add the static startup delay */
-  uint32_t currtime = rtc_get_unix_timestamp();
+  uint32_t currtime;
+#if !FLOCKLAB
+  currtime = rtc_get_unix_timestamp();
   LOG_INFO("timestamp %lu loaded from the RTC", currtime);
+#else /* FLOCKLAB */
+  currtime = BUILD_TIME;
+  LOG_INFO("using build timestamp %lu", BUILD_TIME);
+  rtc_set_unix_timestamp(BUILD_TIME);
+#endif /* FLOCKLAB */
   elwb_sched_set_time((uint64_t)currtime * 1000000 + ELWB_CONF_STARTUP_DELAY * 1000);
 
   /* start eLWB */

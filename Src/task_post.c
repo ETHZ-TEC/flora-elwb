@@ -96,7 +96,7 @@ void vTask_post(void const * argument)
     uint32_t rtctime  = rtc_get_unix_timestamp();
     uint32_t currtime = elwb_get_time_sec();
     if (rtctime != currtime) {
-      rtc_set_unix_timestamp(elwb_get_time_sec() + 1);
+      rtc_set_unix_timestamp(elwb_get_time_sec());
       LOG_INFO("RTC timestamp updated to %lu, was %lu", currtime, rtctime);
     }
 
@@ -144,7 +144,9 @@ void vTask_post(void const * argument)
     }
 
     /* print some stats */
-    LOG_INFO("CPU duty cycle: %u%%", (uint16_t)rtos_get_cpu_dc() / 100);
+    LOG_INFO("CPU duty cycle:  %u%%", (uint16_t)rtos_get_cpu_dc() / 100);
+    const elwb_stats_t* stats = elwb_get_stats();
+    LOG_INFO("Last RSSI value: %ddBm", stats->rssi_avg);
     LOG_VERBOSE("post task executed");
 
     /* flush the log print queue */

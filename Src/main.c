@@ -97,7 +97,7 @@ void load_config(void)
     memset(&config, 0, sizeof(nv_config_t));
     config.node_id = NODE_ID;
   } else {
-    LOG_INFO("config loaded (node ID: %u, reset cnt: %u, bb sched: %u / %u)", config.node_id, config.rst_cnt, config.bb_en.starttime, config.bb_en.period);
+    LOG_INFO("config loaded (node ID: %u, reset cnt: %u, bb sched: %u/%u)", config.node_id, config.rst_cnt, config.bb_en.starttime, config.bb_en.period);
     config.rst_cnt++;
   }
   if (!nvcfg_save(&config)) {

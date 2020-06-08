@@ -280,7 +280,7 @@ void lpm_resume(void)
     HAL_NVIC_DisableIRQ(RADIO_DIO1_WAKEUP_EXTI_IRQn);
     __HAL_GPIO_EXTI_CLEAR_IT(RADIO_DIO1_WAKEUP_Pin);
 
-    /* resume FreeRTOS SysTick and correct the tick count */
+    /* resume FreeRTOS SysTick */
     SET_BIT(SysTick->CTRL, SysTick_CTRL_ENABLE_Msk);
 
     update_opmode(OP_MODE_EVT_RESTORED);

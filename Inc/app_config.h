@@ -19,7 +19,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                5           /* 0..99 */
+#define FW_VERSION_PATCH                6           /* 0..99 */
 #define FLOCKLAB                        0
 #define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
@@ -77,11 +77,7 @@
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_IS_HOST()                  IS_HOST
-#if FLOCKLAB
-  #define ELWB_CONF_T_PREPROCESS        0     /* no pre task */
-#else
-  #define ELWB_CONF_T_PREPROCESS        (ELWB_TIMER_SECOND / 10)      /* 100ms */
-#endif /* FLOCKLAB */
+#define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 10)      /* 100ms */
 
 /* baseboard */
 #if BASEBOARD
@@ -94,9 +90,9 @@
 #define HS_TIMER_COMPENSATE_DRIFT       0
 #define HS_TIMER_INIT_FROM_RTC          0
 #define LPTIMER_RESET_WDG_ON_OVF        1
+#define LPTIMER_RESET_WDG_ON_EXP        0
 #define LPTIMER_CHECK_EXP_TIME          1
 #define UART_FIFO_BUFFER_SIZE           1     /* not used */
-#define CONFIG_ENABLE                   0     /* not used */
 
 /* logging */
 #define LOG_ENABLE                      1
