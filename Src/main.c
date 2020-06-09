@@ -90,7 +90,6 @@ void StartDefaultTask(void const * argument);
 /* USER CODE BEGIN 0 */
 void load_config(void)
 {
-#if !FLOCKLAB
   /* load the config struct */
   if (!nvcfg_load(&config) || (config.node_id == 0 && config.rst_cnt == 0)) {
     LOG_WARNING("failed to load config (default config applied)");
@@ -103,7 +102,6 @@ void load_config(void)
   if (!nvcfg_save(&config)) {
     LOG_ERROR("failed to save config");
   }
-#endif /* FLOCKLAB */
 }
 /* USER CODE END 0 */
 
@@ -157,7 +155,9 @@ int main(void)
   LOG_INFO("node ID: %u", NODE_ID);
   LOG_INFO("reset flag: %s", system_get_reset_cause(0));
 
+#if !FLOCKLAB
   load_config();
+#endif /* FLOCKLAB */
 
   system_init();
 
