@@ -89,8 +89,8 @@
 /* misc */
 #define HS_TIMER_COMPENSATE_DRIFT       0
 #define HS_TIMER_INIT_FROM_RTC          0
-#define LPTIMER_RESET_WDG_ON_OVF        1
-#define LPTIMER_RESET_WDG_ON_EXP        0
+#define LPTIMER_RESET_WDG_ON_OVF        0
+#define LPTIMER_RESET_WDG_ON_EXP        1
 #define LPTIMER_CHECK_EXP_TIME          1
 #define UART_FIFO_BUFFER_SIZE           1     /* not used */
 

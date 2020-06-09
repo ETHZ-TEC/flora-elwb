@@ -324,7 +324,7 @@ void send_node_health(void)
 
   /* radio / communication stats */
   msg_buffer.com_health.radio_snr     = 0;    // TODO
-  msg_buffer.com_health.radio_rssi    = 0;    // TODO
+  msg_buffer.com_health.radio_rssi    = -stats->rssi_avg;
   msg_buffer.com_health.radio_tx_pwr  = 0;    // TODO
   msg_buffer.com_health.radio_per     = 0;    // TODO
   if (rx_cnt_last > stats->pkt_rcvd) {
@@ -342,8 +342,9 @@ void send_node_health(void)
   /* duty cycle */
   msg_buffer.com_health.cpu_dc        = rtos_get_cpu_dc();
   rtos_reset_cpu_dc();
-  msg_buffer.com_health.radio_rx_dc   = 0;    // TODO
-  msg_buffer.com_health.radio_tx_dc   = 0;    // TODO
+  msg_buffer.com_health.radio_rx_dc   = radio_get_rx_dc() / 100;
+  msg_buffer.com_health.radio_tx_dc   = radio_get_tx_dc() / 100;
+  radio_dc_counter_reset();
 
   /* the host must send to BOLT, all other nodes to the network */
   send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_COM_HEALTH, 0, 0, IS_HOST);

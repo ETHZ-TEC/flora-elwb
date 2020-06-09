@@ -144,9 +144,7 @@ void vTask_post(void const * argument)
     }
 
     /* print some stats */
-    LOG_INFO("CPU duty cycle:  %u%%", (uint16_t)rtos_get_cpu_dc() / 100);
-    const elwb_stats_t* stats = elwb_get_stats();
-    LOG_INFO("Last RSSI value: %ddBm", stats->rssi_avg);
+    LOG_INFO("CPU duty cycle:  %u%%    radio ducty cycle (rx/tx):  %uppm/%uppm", (uint16_t)rtos_get_cpu_dc() / 100, radio_get_rx_dc(), radio_get_tx_dc());
     LOG_VERBOSE("post task executed");
 
     /* flush the log print queue */
