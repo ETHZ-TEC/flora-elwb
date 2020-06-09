@@ -40,7 +40,9 @@ static uint32_t      last_health_pkt = 0;
 void vTask_post(void const * argument)
 {
   static unsigned long idleTaskStackWM = 0,
+#if BOLT_ENABLE
                        preTaskStackWM  = 0,
+#endif /* BOLT_ENABLE */
                        comTaskStackWM  = 0,
                        postTaskStackWM = 0;
 
@@ -102,7 +104,9 @@ void vTask_post(void const * argument)
 
     /* check stack watermarks (store the used words) */
     unsigned long idleSWM = configMINIMAL_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_idle));
+#if BOLT_ENABLE
     unsigned long preSWM  = PRE_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_pre));
+#endif /* BOLT_ENABLE */
     unsigned long comSWM  = COM_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_com));
     unsigned long postSWM = POST_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_post));
 
@@ -115,6 +119,7 @@ void vTask_post(void const * argument)
         LOG_INFO("stack watermark of idle task increased to %u%%", usage);
       }
     }
+#if BOLT_ENABLE
     if (preSWM > preTaskStackWM) {
       preTaskStackWM = preSWM;
       uint32_t usage = preTaskStackWM * 100 / PRE_TASK_STACK_SIZE;
@@ -124,6 +129,7 @@ void vTask_post(void const * argument)
         LOG_INFO("stack watermark of pre task increased to %u%%", usage);
       }
     }
+#endif /* BOLT_ENABLE */
     if (comSWM > comTaskStackWM) {
       comTaskStackWM = comSWM;
       uint32_t usage = comTaskStackWM * 100 / COM_TASK_STACK_SIZE;

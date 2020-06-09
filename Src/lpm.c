@@ -97,7 +97,7 @@ void lpm_prepare(void)
 
       __HAL_RCC_PWR_CLK_ENABLE();
 
-      CLEAR_BIT(SysTick->CTRL, SysTick_CTRL_ENABLE_Msk);  /* suspend FreeRTOS SysTick */
+      SUSPEND_SYSTICK();
       HAL_SuspendTick();                                  /* suspend HAL tick */
 
       /* disable all unused peripherals */
@@ -281,7 +281,7 @@ void lpm_resume(void)
     __HAL_GPIO_EXTI_CLEAR_IT(RADIO_DIO1_WAKEUP_Pin);
 
     /* resume FreeRTOS SysTick */
-    SET_BIT(SysTick->CTRL, SysTick_CTRL_ENABLE_Msk);
+    RESUME_SYSTICK();
 
     update_opmode(OP_MODE_EVT_RESTORED);
     LPM_OFF_IND();
