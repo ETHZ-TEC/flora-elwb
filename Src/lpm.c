@@ -157,6 +157,7 @@ void lpm_prepare(void)
       HAL_NVIC_DisableIRQ(SPI2_IRQn);
       HAL_NVIC_DisableIRQ(TIM1_UP_TIM16_IRQn);
       HAL_NVIC_DisableIRQ(TIM2_IRQn);
+      __HAL_LPTIM_DISABLE_IT(&hlptim1, LPTIM_IT_ARRM);    /* -> timer overflow is handled in the compare interrupt */
 
       /* configure RF_DIO1 on PC13 interrupt for wakeup from LPM */
       __HAL_GPIO_EXTI_CLEAR_IT(RADIO_DIO1_WAKEUP_Pin); // important for low-power consumption in STOP2 mode -> see README
@@ -275,6 +276,7 @@ void lpm_resume(void)
     HAL_NVIC_EnableIRQ(SPI2_IRQn);
     HAL_NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
+    __HAL_LPTIM_ENABLE_IT(&hlptim1, LPTIM_IT_ARRM);
 
     /* disable RF_DIO1 on PC13 interrupt (only neede for wakeup from LPM) */
     HAL_NVIC_DisableIRQ(RADIO_DIO1_WAKEUP_EXTI_IRQn);
