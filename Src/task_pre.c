@@ -8,8 +8,6 @@
 #include "main.h"
 
 
-#if BOLT_ENABLE
-
 /* Global variables ----------------------------------------------------------*/
 
 extern QueueHandle_t xQueueHandle_tx;
@@ -25,7 +23,6 @@ extern TIM_HandleTypeDef htim2;
 
 
 /* Private variables ---------------------------------------------------------*/
-static uint8_t  bolt_read_buffer[BOLT_MAX_MSG_LEN];
 static uint64_t master_timestamp      = 0;
 static uint64_t bolt_trq_timestamp    = 0;
 static uint64_t bolt_trq_hs_timestamp = 0;
@@ -168,7 +165,9 @@ void vTask_pre(void const * argument)
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     PRE_TASK_RESUMED();
 
+#if BOLT_ENABLE
     /* read from BOLT */
+    static uint8_t  bolt_read_buffer[BOLT_MAX_MSG_LEN];
     uint32_t max_read_cnt = TRANSMIT_QUEUE_SIZE,
              forwarded = 0;
     /* only read as long as there is still space in the transmit queue */
@@ -187,10 +186,8 @@ void vTask_pre(void const * argument)
       LOG_INFO("%lu msg read from BOLT, %lu forwarded", TRANSMIT_QUEUE_SIZE - max_read_cnt, forwarded);
     }
 
-    /* --- handle timestamp request --- */
-
+    /* handle timestamp request (only if BOLT enabled) */
     handle_trq();
-
     if (!IS_HOST) {
       if (timestamp_requested) {
         send_timestamp(bolt_trq_timestamp);
@@ -199,8 +196,9 @@ void vTask_pre(void const * argument)
     } else {
       update_time();
     }
+#endif /* BOLT_ENABLE */
 
-#if BASEBOARD_TREQ_WATCHDOG
+#if BASEBOARD_TREQ_WATCHDOG && BASEBOARD
     /* only use time request watchdog when baseboard is enabled */
     if (PIN_STATE(BASEBOARD_ENABLE)) {
   #if TIMESTAMP_USE_HS_TIMER
@@ -237,8 +235,9 @@ void vTask_pre(void const * argument)
     }
 #endif /* BASEBOARD_TREQ_WATCHDOG */
 
+    /* wake the radio */
+    radio_wakeup();
+
     LOG_VERBOSE("pre task executed");
   }
 }
-
-#endif /* BOLT_ENABLE */

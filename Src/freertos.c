@@ -73,9 +73,7 @@ uint64_t last_reset       = 0;
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
 
-#if BOLT_ENABLE
 extern void vTask_pre(void* argument);
-#endif /* BOLT_ENABLE */
 extern void vTask_com(void* argument);
 extern void vTask_post(void* argument);
 
@@ -189,14 +187,12 @@ void rtos_init(void)
   /* max. priority is (configMAX_PRIORITIES - 1), higher numbers = higher
    * priority; idle task has priority 0 */
   /* pre communication round task */
-#if BOLT_ENABLE
   if (xTaskCreate(vTask_pre,
                   "preTask",
                   PRE_TASK_STACK_SIZE,
                   NULL,
                   tskIDLE_PRIORITY + 2,
                   &xTaskHandle_pre) != pdPASS)     { Error_Handler(); }
-#endif /* BOLT_ENABLE */
   if (xTaskCreate(vTask_post,
                   "postTask",
                   POST_TASK_STACK_SIZE,

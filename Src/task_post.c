@@ -37,7 +37,7 @@ static uint32_t      last_health_pkt = 0;
 
 /* Functions -----------------------------------------------------------------*/
 
-void vTask_post(void const * argument)
+void check_stack_usage(void)
 {
   static unsigned long idleTaskStackWM = 0,
 #if BOLT_ENABLE
@@ -46,6 +46,57 @@ void vTask_post(void const * argument)
                        comTaskStackWM  = 0,
                        postTaskStackWM = 0;
 
+  /* check stack watermarks (store the used words) */
+  unsigned long idleSWM = configMINIMAL_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_idle));
+#if BOLT_ENABLE
+  unsigned long preSWM  = PRE_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_pre));
+#endif /* BOLT_ENABLE */
+  unsigned long comSWM  = COM_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_com));
+  unsigned long postSWM = POST_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_post));
+
+  if (idleSWM > idleTaskStackWM) {
+    idleTaskStackWM = idleSWM;
+    uint32_t usage = idleTaskStackWM * 100 / configMINIMAL_STACK_SIZE;
+    if (usage > STACK_WARNING_THRESHOLD) {
+      LOG_WARNING("stack watermark of idle task reached %u%%", usage);
+    } else {
+      LOG_INFO("stack watermark of idle task increased to %u%%", usage);
+    }
+  }
+#if BOLT_ENABLE
+  if (preSWM > preTaskStackWM) {
+    preTaskStackWM = preSWM;
+    uint32_t usage = preTaskStackWM * 100 / PRE_TASK_STACK_SIZE;
+    if (usage > STACK_WARNING_THRESHOLD) {
+      LOG_WARNING("stack watermark of pre task reached %u%%", usage);
+    } else {
+      LOG_INFO("stack watermark of pre task increased to %u%%", usage);
+    }
+  }
+#endif /* BOLT_ENABLE */
+  if (comSWM > comTaskStackWM) {
+    comTaskStackWM = comSWM;
+    uint32_t usage = comTaskStackWM * 100 / COM_TASK_STACK_SIZE;
+    if (usage > STACK_WARNING_THRESHOLD) {
+      LOG_WARNING("stack watermark of com task reached %u%%", usage);
+    } else {
+      LOG_INFO("stack watermark of com task increased to %u%%", usage);
+    }
+  }
+  if (postSWM > postTaskStackWM) {
+    postTaskStackWM = postSWM;
+    uint32_t usage = postTaskStackWM * 100 / POST_TASK_STACK_SIZE;
+    if (usage > STACK_WARNING_THRESHOLD) {
+      LOG_WARNING("stack watermark of post task reached %u%%", usage);
+    } else {
+      LOG_INFO("stack watermark of post task increased to %u%%", usage);
+    }
+  }
+}
+
+
+void vTask_post(void const * argument)
+{
   LOG_INFO("Post task started");
 
   /* Infinite loop */
@@ -54,6 +105,9 @@ void vTask_post(void const * argument)
     POST_TASK_SUSPENDED();
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);   /* wait for notification token */
     POST_TASK_RESUMED();
+
+    /* put the radio into sleep mode */
+    radio_sleep(false);
 
     /* process all packets rcvd from the network (regardless of whether there is space in the BOLT queue) */
     uint16_t rcvd = 0,
@@ -102,52 +156,8 @@ void vTask_post(void const * argument)
       LOG_INFO("RTC timestamp updated to %lu, was %lu", currtime, rtctime);
     }
 
-    /* check stack watermarks (store the used words) */
-    unsigned long idleSWM = configMINIMAL_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_idle));
-#if BOLT_ENABLE
-    unsigned long preSWM  = PRE_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_pre));
-#endif /* BOLT_ENABLE */
-    unsigned long comSWM  = COM_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_com));
-    unsigned long postSWM = POST_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_post));
-
-    if (idleSWM > idleTaskStackWM) {
-      idleTaskStackWM = idleSWM;
-      uint32_t usage = idleTaskStackWM * 100 / configMINIMAL_STACK_SIZE;
-      if (usage > STACK_WARNING_THRESHOLD) {
-        LOG_WARNING("stack watermark of idle task reached %u%%", usage);
-      } else {
-        LOG_INFO("stack watermark of idle task increased to %u%%", usage);
-      }
-    }
-#if BOLT_ENABLE
-    if (preSWM > preTaskStackWM) {
-      preTaskStackWM = preSWM;
-      uint32_t usage = preTaskStackWM * 100 / PRE_TASK_STACK_SIZE;
-      if (usage > STACK_WARNING_THRESHOLD) {
-        LOG_WARNING("stack watermark of pre task reached %u%%", usage);
-      } else {
-        LOG_INFO("stack watermark of pre task increased to %u%%", usage);
-      }
-    }
-#endif /* BOLT_ENABLE */
-    if (comSWM > comTaskStackWM) {
-      comTaskStackWM = comSWM;
-      uint32_t usage = comTaskStackWM * 100 / COM_TASK_STACK_SIZE;
-      if (usage > STACK_WARNING_THRESHOLD) {
-        LOG_WARNING("stack watermark of com task reached %u%%", usage);
-      } else {
-        LOG_INFO("stack watermark of com task increased to %u%%", usage);
-      }
-    }
-    if (postSWM > postTaskStackWM) {
-      postTaskStackWM = postSWM;
-      uint32_t usage = postTaskStackWM * 100 / POST_TASK_STACK_SIZE;
-      if (usage > STACK_WARNING_THRESHOLD) {
-        LOG_WARNING("stack watermark of post task reached %u%%", usage);
-      } else {
-        LOG_INFO("stack watermark of post task increased to %u%%", usage);
-      }
-    }
+    /* check for critical stack usage or overflow */
+    check_stack_usage();
 
     /* print some stats */
     LOG_INFO("CPU duty cycle:  %u%%    radio ducty cycle (rx/tx):  %uppm/%uppm", (uint16_t)rtos_get_cpu_dc() / 100, radio_get_rx_dc(), radio_get_tx_dc());

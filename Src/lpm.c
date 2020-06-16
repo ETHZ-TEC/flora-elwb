@@ -6,6 +6,12 @@
  *      Author: keepcoding
  */
 
+/*
+ * Notes:
+ * - The radio is only put into sleep mode before entering an MCU deep sleep mode.
+ * - The radio is NOT woken from sleep upon exit of a deep sleep mode (may not be in the interest of the application to do so).
+ */
+
 #include "main.h"
 
 
@@ -72,8 +78,6 @@ void lpm_prepare(void)
   if (op_mode == OP_MODE_IDLE)
   {
     if (lp_mode == LP_MODE_SLEEP) {
-      /* make sure the radio is in sleep mode */
-      radio_sleep(false);
       /* stop the HAL tick */
       HAL_SuspendTick();
       /* do not update op_mode since we are already in IDLE and we are not entering a real LPM state */
@@ -217,8 +221,6 @@ void lpm_resume(void)
   if (op_mode == OP_MODE_IDLE) {
     /* MCU was in sleep mode, only tick needs to be restored */
     HAL_ResumeTick();
-    /* wake the radio */
-    radio_wakeup();
     /* do not update op_mode since we are already in IDLE */
   }
   else if (op_mode == OP_MODE_WOKEN) {
@@ -286,8 +288,5 @@ void lpm_resume(void)
     LPM_OFF_IND();
     __set_BASEPRI(0);   /* enable interrupts */
     HAL_ResumeTick();
-
-    /* wake the radio */
-    radio_wakeup();
   }
 }

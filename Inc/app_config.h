@@ -19,7 +19,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                6           /* 0..99 */
+#define FW_VERSION_PATCH                7           /* 0..99 */
 #define FLOCKLAB                        0
 #define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
@@ -34,7 +34,7 @@
   #define HOST_ID                       2
 #endif /* BASEBOARD */
 #if !FLOCKLAB
-  #define NODE_ID                       HOST_ID
+  #define NODE_ID                       3 //HOST_ID
 #endif /* FLOCKLAB */
 #ifndef IS_HOST
   #define IS_HOST                       (NODE_ID == HOST_ID)
@@ -50,9 +50,9 @@
 #define NODE_HEALTH_MSG_PERIOD          300
 
 /* memory */
-#define PRE_TASK_STACK_SIZE             (configMINIMAL_STACK_SIZE)      /* in # words of 4 bytes */
-#define COM_TASK_STACK_SIZE             (configMINIMAL_STACK_SIZE * 2)  /* in # words of 4 bytes */
-#define POST_TASK_STACK_SIZE            (configMINIMAL_STACK_SIZE)      /* in # words of 4 bytes */
+#define PRE_TASK_STACK_SIZE             256                             /* in # words of 4 bytes */
+#define COM_TASK_STACK_SIZE             512                             /* in # words of 4 bytes */
+#define POST_TASK_STACK_SIZE            512                             /* in # words of 4 bytes */
 #define STACK_WARNING_THRESHOLD         80                              /* a warning will be generated once the stack usage of a task exceeds this value (in percent) */
 #define TRANSMIT_QUEUE_SIZE             20                              /* #messages */
 #define RECEIVE_QUEUE_SIZE              ELWB_CONF_MAX_DATA_SLOTS        /* #messages */
@@ -122,33 +122,33 @@
     #define ELWB_SUSPENDED()            //PIN_CLR(FLOCKLAB_LED1)
     #define POST_TASK_RESUMED()         //PIN_SET(FLOCKLAB_LED1)
     #define POST_TASK_SUSPENDED()       //PIN_CLR(FLOCKLAB_LED1)
+    #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(FLOCKLAB_LED1)
+    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(FLOCKLAB_LED1)
     #define RADIO_TX_START_IND()        PIN_SET(FLOCKLAB_LED3)
     #define RADIO_TX_STOP_IND()         PIN_CLR(FLOCKLAB_LED3)
     #define RADIO_RX_START_IND()        PIN_SET(FLOCKLAB_LED3)
     #define RADIO_RX_STOP_IND()         PIN_CLR(FLOCKLAB_LED3)
-    #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(FLOCKLAB_LED1)
-    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(FLOCKLAB_LED1)
   #else /* FLOCKLAB */
     #define CPU_ON_IND()                //PIN_SET(COM_GPIO1)
     #define CPU_OFF_IND()               //PIN_CLR(COM_GPIO1)
-    #define LPM_ON_IND()                PIN_CLR(COM_GPIO1)
-    #define LPM_OFF_IND()               PIN_SET(COM_GPIO1)
+    #define LPM_ON_IND()                //PIN_CLR(COM_GPIO1)
+    #define LPM_OFF_IND()               //PIN_SET(COM_GPIO1)
     #define IDLE_TASK_RESUMED()         //PIN_SET(COM_GPIO2)
     #define IDLE_TASK_SUSPENDED()       //PIN_CLR(COM_GPIO2)
     #define ISR_ON_IND()                PIN_SET(COM_GPIO2)
     #define ISR_OFF_IND()               PIN_CLR(COM_GPIO2)
-    #define RADIO_TX_START_IND()        //PIN_SET(COM_GPIO2)
-    #define RADIO_TX_STOP_IND()         //PIN_CLR(COM_GPIO2)
-    #define RADIO_RX_START_IND()        //PIN_SET(COM_GPIO2)
-    #define RADIO_RX_STOP_IND()         //PIN_CLR(COM_GPIO2)
-    #define ELWB_RESUMED()              PIN_SET(COM_GPIO1)
-    #define ELWB_SUSPENDED()            PIN_CLR(COM_GPIO1)
-    #define PRE_TASK_RESUMED()          PIN_SET(COM_GPIO1)
-    #define PRE_TASK_SUSPENDED()        PIN_CLR(COM_GPIO1)
-    #define POST_TASK_RESUMED()         PIN_SET(COM_GPIO1)
-    #define POST_TASK_SUSPENDED()       PIN_CLR(COM_GPIO1)
-    #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(COM_GPIO1)
-    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(COM_GPIO1)
+    #define ELWB_RESUMED()              //PIN_SET(COM_GPIO1)
+    #define ELWB_SUSPENDED()            //PIN_CLR(COM_GPIO1)
+    #define PRE_TASK_RESUMED()          //PIN_SET(COM_GPIO1)
+    #define PRE_TASK_SUSPENDED()        //PIN_CLR(COM_GPIO1)
+    #define POST_TASK_RESUMED()         //PIN_SET(COM_GPIO1)
+    #define POST_TASK_SUSPENDED()       //PIN_CLR(COM_GPIO1)
+    #define GLORIA_START_IND()          led_on(LED_SYSTEM)
+    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM)
+    #define RADIO_TX_START_IND()        PIN_SET(COM_GPIO1)
+    #define RADIO_TX_STOP_IND()         PIN_CLR(COM_GPIO1)
+    #define RADIO_RX_START_IND()        //PIN_SET(COM_GPIO1)
+    #define RADIO_RX_STOP_IND()         //PIN_CLR(COM_GPIO1)
   #endif /* FLOCKLAB */
 #else /* BASEBOARD */
   #define GLORIA_START_IND()            led_on(LED_SYSTEM)
