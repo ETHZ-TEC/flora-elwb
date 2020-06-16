@@ -35,6 +35,9 @@ void vTask_com(void const * argument)
 #endif /* FLOCKLAB */
   elwb_sched_set_time((uint64_t)currtime * 1000000 + ELWB_CONF_STARTUP_DELAY * 1000);
 
+  /* make sure the radio is awake */
+  radio_wakeup();
+
   /* start eLWB */
   elwb_start(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx);
   FATAL_ERROR("eLWB task terminated");

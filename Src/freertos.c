@@ -150,7 +150,6 @@ void vApplicationMallocFailedHook(void)
 void PreSleepProcessing(uint32_t *ulExpectedIdleTime)
 {
   /* note: for tickless idle, the HAL tick needs to be suspended! */
-  HAL_SuspendTick();
   lpm_prepare();
 
   /* duty cycle measurement */
@@ -164,7 +163,6 @@ void PostSleepProcessing(uint32_t *ulExpectedIdleTime)
   wakeup_timestamp = lptimer_now();    /* reset duty cycle timer */
 
   lpm_resume();
-  HAL_ResumeTick();
 }
 /* USER CODE END PREPOSTSLEEP */
 

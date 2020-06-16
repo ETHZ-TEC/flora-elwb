@@ -59,6 +59,7 @@ op_mode_t get_opmode(void)
   return op_mode;
 }
 
+
 void update_opmode(op_mode_event_t evt)
 {
   op_mode = op_mode_state_machine[op_mode][evt];
@@ -69,22 +70,25 @@ void update_opmode(op_mode_event_t evt)
   }
 }
 
+
 /* prepare the MCU for low power mode */
 void lpm_prepare(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = { 0 };
 
+#if configUSE_TICKLESS_IDLE
+  /* stop the HAL tick independent of the operating mode if tickless idle is selected */
+  HAL_SuspendTick();
+#endif /* configUSE_TICKLESS_IDLE */
+
   /* only enter a low-power mode if the application is in idle state */
   if (op_mode == OP_MODE_IDLE)
   {
     if (lp_mode == LP_MODE_SLEEP) {
-      /* stop the HAL tick */
-      HAL_SuspendTick();
       /* do not update op_mode since we are already in IDLE and we are not entering a real LPM state */
+      HAL_SuspendTick();
     }
-    else if ((lp_mode == LP_MODE_STOP2)   ||
-             (lp_mode == LP_MODE_STANDBY) ||
-             (lp_mode == LP_MODE_SHUTDOWN)) {
+    else if (lp_mode >= LP_MODE_STOP2) {
       /* make sure the radio is in sleep mode */
       radio_sleep(false);
 
@@ -94,14 +98,14 @@ void lpm_prepare(void)
       * - LSE and LPTIM keep running
       * - all I/O pins keep the state
       */
-      __set_BASEPRI( (TICK_INT_PRIORITY + 1) << (8 - __NVIC_PRIO_BITS) );   /* or:  __disable_irq() */
+      MASK_INTERRUPTS();
       __DSB();
       __ISB();
 
       __HAL_RCC_PWR_CLK_ENABLE();
 
       SUSPEND_SYSTICK();
-      HAL_SuspendTick();                                  /* suspend HAL tick */
+      HAL_SuspendTick();
 
       /* disable all unused peripherals */
       __HAL_TIM_DISABLE(&htim2);
@@ -109,6 +113,10 @@ void lpm_prepare(void)
       __HAL_UART_DISABLE(&huart1);
       __HAL_SPI_DISABLE(&hspi1);
       __HAL_SPI_DISABLE(&hspi2);
+      /* for STANDBY and SHUTDOWN: also disable LPTIM1 */
+      if (lp_mode == LP_MODE_STANDBY || lp_mode == LP_MODE_SHUTDOWN) {
+        __HAL_LPTIM_DISABLE(&hlptim1);
+      }
 
       /* configure HSI as clock source (16MHz) */
       RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -163,52 +171,28 @@ void lpm_prepare(void)
 
       /* configure RF_DIO1 on PC13 interrupt for wakeup from LPM */
       __HAL_GPIO_EXTI_CLEAR_IT(RADIO_DIO1_WAKEUP_Pin); // important for low-power consumption in STOP2 mode -> see README
-      if(lp_mode == LP_MODE_STOP2) {
+      if (lp_mode > LP_MODE_STOP2) {
         HAL_NVIC_SetPriority(RADIO_DIO1_WAKEUP_EXTI_IRQn, 5, 0);
         HAL_NVIC_EnableIRQ(RADIO_DIO1_WAKEUP_EXTI_IRQn);
       }
-
-      /* disable LPTIM1 (necessary to enter STANDBY or SHUTDOWN) (still did not work so far) */
-      if (lp_mode == LP_MODE_STANDBY || lp_mode == LP_MODE_SHUTDOWN) {
-        __HAL_LPTIM_DISABLE(&hlptim1);
-      }
+      /* make sure the flags of all WAKEUP lines are cleared */
+      __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
 
       if (lp_mode == LP_MODE_STOP2) {
-        /* Clear flags of all WAKEUP lines (necessary for STOP2 as well?) */
-        __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
-
         MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_STOP2);    /* set Stop mode 2 */
       }
       else if (lp_mode == LP_MODE_STANDBY) {
-        /* Clear flags of all WAKEUP lines (necessary to successfully enter STANDBY mode after sending with radio) */
-        __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
-
         MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_STANDBY);  /* set Standby mode */
       }
       else if (lp_mode == LP_MODE_SHUTDOWN) {
-        /* Clear flags of all WAKEUP lines (necessary to successfully enter SHUTDOWN mode after sending with radio) */
-        __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
-
         MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_SHUTDOWN); /* set Shutdown mode */
       }
       SET_BIT(SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));        /* set SLEEPDEEP bit */
 
+      update_opmode(OP_MODE_EVT_STOPPED);
       LPM_ON_IND();
 
-      /* clock gating (-> shouldn't be necessary if clock source is disabled!) */
-      /*__HAL_RCC_GPIOA_CLK_DISABLE();
-      __HAL_RCC_GPIOB_CLK_DISABLE();
-      __HAL_RCC_GPIOC_CLK_DISABLE();
-      __HAL_RCC_GPIOD_CLK_DISABLE();
-      __HAL_RCC_GPIOE_CLK_DISABLE();
-      __HAL_RCC_GPIOH_CLK_DISABLE();
-      __HAL_RCC_DMA1_CLK_DISABLE();
-      __HAL_RCC_FLASH_CLK_DISABLE();
-      __HAL_RCC_SYSCFG_CLK_DISABLE();
-      __HAL_RCC_PWR_CLK_DISABLE();*/
-
-      update_opmode(OP_MODE_EVT_STOPPED);
-      __set_BASEPRI(0);     /* re-enable interrupts */
+      UNMASK_INTERRUPTS();      /* re-enable interrupts */
     }
   }
 }
@@ -218,16 +202,11 @@ void lpm_resume(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = { 0 };
 
-  if (op_mode == OP_MODE_IDLE) {
-    /* MCU was in sleep mode, only tick needs to be restored */
-    HAL_ResumeTick();
-    /* do not update op_mode since we are already in IDLE */
-  }
-  else if (op_mode == OP_MODE_WOKEN) {
+  if (op_mode == OP_MODE_WOKEN) {
     /* MCU was in STOP2, STANDBY, or SHUTDOWN mode, different components need to be restored */
 
     /* make sure the following code runs atomically */
-    __set_BASEPRI( (TICK_INT_PRIORITY + 1) << (8 - __NVIC_PRIO_BITS) );   /* mask interrupts */
+    MASK_INTERRUPTS();
     __DSB();
     __ISB();
 
@@ -281,12 +260,15 @@ void lpm_resume(void)
     HAL_NVIC_DisableIRQ(RADIO_DIO1_WAKEUP_EXTI_IRQn);
     __HAL_GPIO_EXTI_CLEAR_IT(RADIO_DIO1_WAKEUP_Pin);
 
-    /* resume FreeRTOS SysTick */
+    /* resume FreeRTOS SysTick and HAL tick */
     RESUME_SYSTICK();
 
     update_opmode(OP_MODE_EVT_RESTORED);
     LPM_OFF_IND();
-    __set_BASEPRI(0);   /* enable interrupts */
-    HAL_ResumeTick();
+
+    UNMASK_INTERRUPTS();
   }
+
+  /* make sure the hal tick is resumed */
+  HAL_ResumeTick();
 }

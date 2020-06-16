@@ -34,7 +34,7 @@
   #define HOST_ID                       2
 #endif /* BASEBOARD */
 #if !FLOCKLAB
-  #define NODE_ID                       3 //HOST_ID
+  #define NODE_ID                       HOST_ID
 #endif /* FLOCKLAB */
 #ifndef IS_HOST
   #define IS_HOST                       (NODE_ID == HOST_ID)
