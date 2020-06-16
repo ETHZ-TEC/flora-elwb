@@ -168,13 +168,15 @@ void lpm_prepare(void)
       HAL_NVIC_DisableIRQ(TIM1_UP_TIM16_IRQn);
       HAL_NVIC_DisableIRQ(TIM2_IRQn);
       __HAL_LPTIM_DISABLE_IT(&hlptim1, LPTIM_IT_ARRM);    /* -> timer overflow is handled in the compare interrupt */
+      //__HAL_LPTIM_CLEAR_FLAG(&hlptim1, LPTIM_IT_ARRM);
 
       /* configure RF_DIO1 on PC13 interrupt for wakeup from LPM */
       __HAL_GPIO_EXTI_CLEAR_IT(RADIO_DIO1_WAKEUP_Pin); // important for low-power consumption in STOP2 mode -> see README
-      if (lp_mode > LP_MODE_STOP2) {
+      if (lp_mode == LP_MODE_STOP2) {
         HAL_NVIC_SetPriority(RADIO_DIO1_WAKEUP_EXTI_IRQn, 5, 0);
         HAL_NVIC_EnableIRQ(RADIO_DIO1_WAKEUP_EXTI_IRQn);
       }
+
       /* make sure the flags of all WAKEUP lines are cleared */
       __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
 
@@ -260,7 +262,7 @@ void lpm_resume(void)
     HAL_NVIC_DisableIRQ(RADIO_DIO1_WAKEUP_EXTI_IRQn);
     __HAL_GPIO_EXTI_CLEAR_IT(RADIO_DIO1_WAKEUP_Pin);
 
-    /* resume FreeRTOS SysTick and HAL tick */
+    /* resume FreeRTOS SysTick */
     RESUME_SYSTICK();
 
     update_opmode(OP_MODE_EVT_RESTORED);
@@ -269,6 +271,6 @@ void lpm_resume(void)
     UNMASK_INTERRUPTS();
   }
 
-  /* make sure the hal tick is resumed */
+  /* make sure the HAL tick is resumed */
   HAL_ResumeTick();
 }
