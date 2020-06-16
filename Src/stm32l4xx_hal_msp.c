@@ -359,28 +359,6 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* htim_base)
 
 }
 
-/**
-* @brief TIM_OC MSP Initialization
-* This function configures the hardware resources used in this example
-* @param htim_oc: TIM_OC handle pointer
-* @retval None
-*/
-void HAL_TIM_OC_MspInit(TIM_HandleTypeDef* htim_oc)
-{
-  if(htim_oc->Instance==TIM15)
-  {
-  /* USER CODE BEGIN TIM15_MspInit 0 */
-
-  /* USER CODE END TIM15_MspInit 0 */
-    /* Peripheral clock enable */
-    __HAL_RCC_TIM15_CLK_ENABLE();
-  /* USER CODE BEGIN TIM15_MspInit 1 */
-
-  /* USER CODE END TIM15_MspInit 1 */
-  }
-
-}
-
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -448,28 +426,6 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* htim_base)
   /* USER CODE BEGIN TIM16_MspDeInit 1 */
 
   /* USER CODE END TIM16_MspDeInit 1 */
-  }
-
-}
-
-/**
-* @brief TIM_OC MSP De-Initialization
-* This function freeze the hardware resources used in this example
-* @param htim_oc: TIM_OC handle pointer
-* @retval None
-*/
-void HAL_TIM_OC_MspDeInit(TIM_HandleTypeDef* htim_oc)
-{
-  if(htim_oc->Instance==TIM15)
-  {
-  /* USER CODE BEGIN TIM15_MspDeInit 0 */
-
-  /* USER CODE END TIM15_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_TIM15_CLK_DISABLE();
-  /* USER CODE BEGIN TIM15_MspDeInit 1 */
-
-  /* USER CODE END TIM15_MspDeInit 1 */
   }
 
 }

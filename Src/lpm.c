@@ -21,7 +21,6 @@
 
 extern LPTIM_HandleTypeDef hlptim1;
 extern TIM_HandleTypeDef   htim2;
-extern TIM_HandleTypeDef   htim15;
 extern TIM_HandleTypeDef   htim16;
 extern SPI_HandleTypeDef   hspi1;
 extern SPI_HandleTypeDef   hspi2;
@@ -102,7 +101,6 @@ void lpm_prepare(void)
 
       /* disable all unused peripherals */
       __HAL_TIM_DISABLE(&htim2);
-      __HAL_TIM_DISABLE(&htim15);
       __HAL_TIM_DISABLE(&htim16);
       __HAL_UART_DISABLE(&huart1);
       __HAL_SPI_DISABLE(&hspi1);
@@ -256,7 +254,6 @@ void lpm_resume(void)
 
     /* restore peripherals */
     __HAL_TIM_ENABLE(&htim2);
-    __HAL_TIM_ENABLE(&htim15);
     __HAL_TIM_ENABLE(&htim16);
     __HAL_UART_ENABLE(&huart1);
     __HAL_SPI_ENABLE(&hspi1);
