@@ -36,9 +36,7 @@
 #if !FLOCKLAB
   #define NODE_ID                       HOST_ID
 #endif /* FLOCKLAB */
-#ifndef IS_HOST
-  #define IS_HOST                       (NODE_ID == HOST_ID)
-#endif /* IS_HOST */
+#define IS_HOST                         (NODE_ID == HOST_ID)
 
 /* time sync and drift compensation */
 #define TIMESTAMP_TYPICAL_DRIFT         100   /* typical drift +/- in ppm (if exceeded, a warning will be issued) */
@@ -64,7 +62,11 @@
 
 /* Gloria config */
 #define GLORIA_INTERFACE_MODULATION     10   /* FSK 250kbit/s */
-#define GLORIA_INTERFACE_RF_BAND        48   /* 869.46 MHz (see table in radio_constants.c for options) */
+#if FLOCKLAB
+  #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options) */
+#else
+  #define GLORIA_INTERFACE_RF_BAND      48   /* 869.46 MHz (see table in radio_constants.c for options) */
+#endif /* FLOCKLAB */
 
 /* eLWB config */
 #define ELWB_ENABLE                     1
@@ -77,7 +79,7 @@
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_IS_HOST()                  IS_HOST
-#define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 10)      /* 100ms */
+#define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 20)      /* 50ms */
 
 /* baseboard */
 #if BASEBOARD
