@@ -98,7 +98,7 @@ void lpm_prepare(void)
       * - LSE and LPTIM keep running
       * - all I/O pins keep the state
       */
-      MASK_INTERRUPTS();
+      ENTER_CRITICAL_SECTION();
       __DSB();
       __ISB();
 
@@ -115,7 +115,7 @@ void lpm_prepare(void)
       __HAL_SPI_DISABLE(&hspi2);
       /* for STANDBY and SHUTDOWN: also disable LPTIM1 */
       if (lp_mode == LP_MODE_STANDBY || lp_mode == LP_MODE_SHUTDOWN) {
-        __HAL_LPTIM_DISABLE(&hlptim1);
+        LPTIM_Disable(&hlptim1);    /* use this instead of __HAL_LPTIM_DISABLE(), implements an errata workaround */
       }
 
       /* configure HSI as clock source (16MHz) */
@@ -167,15 +167,14 @@ void lpm_prepare(void)
       HAL_NVIC_DisableIRQ(SPI2_IRQn);
       HAL_NVIC_DisableIRQ(TIM1_UP_TIM16_IRQn);
       HAL_NVIC_DisableIRQ(TIM2_IRQn);
-      __HAL_LPTIM_DISABLE_IT(&hlptim1, LPTIM_IT_ARRM);    /* -> timer overflow is handled in the compare interrupt */
-      //__HAL_LPTIM_CLEAR_FLAG(&hlptim1, LPTIM_IT_ARRM);
+      /* note: do not disable LPTIM ARRM interrupt in LPM (see errata sheet) */
 
       /* configure RF_DIO1 on PC13 interrupt for wakeup from LPM */
       __HAL_GPIO_EXTI_CLEAR_IT(RADIO_DIO1_WAKEUP_Pin); // important for low-power consumption in STOP2 mode -> see README
-      if (lp_mode == LP_MODE_STOP2) {
+      /*if (lp_mode == LP_MODE_STOP2) {
         HAL_NVIC_SetPriority(RADIO_DIO1_WAKEUP_EXTI_IRQn, 5, 0);
         HAL_NVIC_EnableIRQ(RADIO_DIO1_WAKEUP_EXTI_IRQn);
-      }
+      }*/
 
       /* make sure the flags of all WAKEUP lines are cleared */
       __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
@@ -194,7 +193,7 @@ void lpm_prepare(void)
       update_opmode(OP_MODE_EVT_STOPPED);
       LPM_ON_IND();
 
-      UNMASK_INTERRUPTS();      /* re-enable interrupts */
+      LEAVE_CRITICAL_SECTION();      /* re-enable interrupts */
     }
   }
 }
@@ -208,7 +207,7 @@ void lpm_resume(void)
     /* MCU was in STOP2, STANDBY, or SHUTDOWN mode, different components need to be restored */
 
     /* make sure the following code runs atomically */
-    MASK_INTERRUPTS();
+    ENTER_CRITICAL_SECTION();
     __DSB();
     __ISB();
 
@@ -256,7 +255,6 @@ void lpm_resume(void)
     HAL_NVIC_EnableIRQ(SPI2_IRQn);
     HAL_NVIC_EnableIRQ(TIM1_UP_TIM16_IRQn);
     HAL_NVIC_EnableIRQ(TIM2_IRQn);
-    __HAL_LPTIM_ENABLE_IT(&hlptim1, LPTIM_IT_ARRM);
 
     /* disable RF_DIO1 on PC13 interrupt (only neede for wakeup from LPM) */
     HAL_NVIC_DisableIRQ(RADIO_DIO1_WAKEUP_EXTI_IRQn);
@@ -268,7 +266,7 @@ void lpm_resume(void)
     update_opmode(OP_MODE_EVT_RESTORED);
     LPM_OFF_IND();
 
-    UNMASK_INTERRUPTS();
+    LEAVE_CRITICAL_SECTION();
   }
 
   /* make sure the HAL tick is resumed */
