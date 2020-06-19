@@ -74,6 +74,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         }
         sched_cmd.type           = msg->cmd.type;
         sched_cmd.scheduled_time = msg->cmd.arg32[0];
+        sched_cmd.arg            = 0;
         if (msg->cmd.arg[4] & 1) {
           /* relative time -> append generation time */
           sched_cmd.scheduled_time += msg->header.generation_time / 1000000;
@@ -85,7 +86,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
           LOG_WARNING("failed to add command to queue");
           EVENT_WARNING(EVENT_SX1262_QUEUE_FULL, 3);
         } else {
-          LOG_VERBOSE("baseboard enable / disable command scheduled (time: %lu, wakeup flag: %u)", sched_cmd.scheduled_time, sched_cmd.arg);
+          LOG_VERBOSE("baseboard command %u scheduled (time: %lu)", msg->cmd.type, sched_cmd.scheduled_time);
         }
         successful = true;
         break;
@@ -196,7 +197,9 @@ void process_commands(void)
   /* check the periodic baseboard enable */
   if (config.bb_en.starttime > 0 && config.bb_en.starttime <= curr_time) {
     PIN_SET(BASEBOARD_ENABLE);
-    config.bb_en.starttime += config.bb_en.period;
+    while (config.bb_en.period > 0 && config.bb_en.starttime < curr_time) {
+      config.bb_en.starttime += config.bb_en.period;
+    }
     LOG_INFO("baseboard enabled, next wakeup scheduled (in %us)", config.bb_en.period);
   }
 }
