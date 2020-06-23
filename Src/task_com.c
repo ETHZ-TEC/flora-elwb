@@ -18,6 +18,12 @@ extern QueueHandle_t xQueueHandle_rx;
 extern QueueHandle_t xQueueHandle_tx;
 
 
+void listen_timeout(void)
+{
+  /* nothing to do */
+}
+
+
 /* communication task */
 void vTask_com(void const * argument)
 {
@@ -39,7 +45,7 @@ void vTask_com(void const * argument)
   radio_wakeup();
 
   /* start eLWB */
-  elwb_start(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx);
+  elwb_start(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, listen_timeout);
   FATAL_ERROR("eLWB task terminated");
 
   /* for debugging purposes only if eLWB is not used */

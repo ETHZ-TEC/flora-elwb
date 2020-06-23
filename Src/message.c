@@ -12,6 +12,7 @@
 
 extern QueueHandle_t xQueueHandle_tx;
 extern QueueHandle_t xQueueHandle_rx;
+extern uint32_t health_msg_period;
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -65,6 +66,44 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         } else {
           NVIC_SystemReset();
         }
+        break;
+
+      case CMD_SX1262_SET_COM_PERIOD:
+        if (!IS_HOST) {   /* only a host node can interpret this command */
+           break;
+        }
+        successful = elwb_sched_set_period(msg->cmd.arg16[0]);
+        break;
+
+      case CMD_SX1262_REGISTER_NODE:
+        if (!IS_HOST) {   /* only a host node can interpret this command */
+           break;
+        }
+        successful = elwb_sched_add_node(msg->cmd.arg16[0]);
+        break;
+
+      case CMD_SX1262_SET_HEALTH_PERIOD:
+        if (msg->cmd.arg16[0] >= 15) {
+          health_msg_period = msg->cmd.arg16[0];
+          successful = true;
+        }
+        break;
+
+      case CMD_SX1262_SET_EVENT_LEVEL:
+        if (msg->cmd.arg[0] < NUM_EVENT_MSG_LEVELS) {
+          event_msg_level = msg->cmd.arg[0];
+          successful = true;
+        }
+        break;
+
+      case CMD_SX1262_SET_TX_POWER:
+        gloria_set_tx_power(msg->cmd.arg[0]);
+        successful = true;
+        break;
+
+      case CMD_SX1262_SET_MODULATION:
+        gloria_set_modulation(msg->cmd.arg[0]);
+        successful = true;
         break;
 
       case CMD_SX1262_BASEBOARD_ENABLE:
@@ -121,7 +160,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         LOG_INFO("cmd 0x%x processed", msg->cmd.type & 0xff);
         EVENT_INFO(EVENT_SX1262_CMD_EXECUTED, msg->cmd.type & 0xff);
       } else {
-        EVENT_WARNING(EVENT_SX1262_INV_CMD, msg->cmd.type);
+        EVENT_WARNING(EVENT_SX1262_INV_CMD, msg->cmd.type & 0xff);
       }
 
 #if BOLT_ENABLE

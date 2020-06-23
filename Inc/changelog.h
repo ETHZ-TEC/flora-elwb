@@ -11,6 +11,13 @@
 
 /*
 
+v0.1.8
+- issue fixed where periodic baseboard wakeup would not work properly when a jump in time occurs
+- potential issue fixed in elwb where a recovery on the host node would not be possible if the scheduled wakeup time happens to be in the past
+- log printing: separate seconds and milliseconds (relative timestamp since start) with a dot
+- elwb: listen timeout callback function added
+- new commands added: register node, set communication base period, set health period, set event message level, set TX power, set modulation
+
 v0.1.7
 - unused timer tim15 removed
 - use the pre task regardless of whether BOLT is enabled

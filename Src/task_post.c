@@ -19,6 +19,9 @@ extern TaskHandle_t xTaskHandle_com;
 extern TaskHandle_t xTaskHandle_post;
 extern TaskHandle_t xTaskHandle_idle;
 
+uint32_t health_msg_period = NODE_HEALTH_MSG_PERIOD;
+
+
 /* Private define ------------------------------------------------------------*/
 
 #ifndef POST_TASK_RESUMED
@@ -31,7 +34,6 @@ extern TaskHandle_t xTaskHandle_idle;
 
 static dpp_message_t msg_buffer;
 static bool          node_info_sent = false;
-static uint32_t      health_msg_period = NODE_HEALTH_MSG_PERIOD;
 static uint32_t      last_health_pkt = 0;
 
 
