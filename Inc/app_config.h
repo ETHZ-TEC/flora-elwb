@@ -77,6 +77,7 @@
 #define ELWB_CONF_T_CONT                (ELWB_TIMER_SECOND / 100)     /* 10ms */
 #define ELWB_CONF_SCHED_PERIOD_IDLE     15
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
+#define ELWB_CONF_DATA_ACK              1
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_IS_HOST()                  IS_HOST
 #define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 20)      /* 50ms */

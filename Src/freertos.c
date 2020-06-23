@@ -62,6 +62,7 @@ TaskHandle_t xTaskHandle_idle = NULL;
 /* RTOS Queue Handles */
 QueueHandle_t xQueueHandle_tx = NULL;   /* holds the messages to be transmitted over the eLWB network */
 QueueHandle_t xQueueHandle_rx = NULL;   /* holds the messages received from the eLWB network */
+QueueHandle_t xQueueHandle_retransmit = NULL;   /* required by the eLWB for retransmitting packets (D-ACK feature) */
 /* Variables */
 bool     round_finished   = false;
 uint64_t active_time      = 0;
@@ -173,11 +174,15 @@ void rtos_init(void)
 {
   /* create RTOS queues */
   xQueueHandle_rx = xQueueCreate(RECEIVE_QUEUE_SIZE, DPP_MSG_PKT_LEN);
-  if(xQueueHandle_rx == NULL) {
+  if (xQueueHandle_rx == NULL) {
     Error_Handler();
   }
   xQueueHandle_tx = xQueueCreate(TRANSMIT_QUEUE_SIZE, DPP_MSG_PKT_LEN);
-  if(xQueueHandle_tx == NULL) {
+  if (xQueueHandle_tx == NULL) {
+    Error_Handler();
+  }
+  xQueueHandle_retransmit = xQueueCreate(TRANSMIT_QUEUE_SIZE, DPP_MSG_PKT_LEN);
+  if (xQueueHandle_retransmit == NULL) {
     Error_Handler();
   }
 

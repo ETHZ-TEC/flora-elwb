@@ -13,10 +13,14 @@
 
 v0.1.8
 - issue fixed where periodic baseboard wakeup would not work properly when a jump in time occurs
-- potential issue fixed in elwb where a recovery on the host node would not be possible if the scheduled wakeup time happens to be in the past
+- potential issue fixed in eLWB where a recovery on the host node would not be possible if the scheduled wakeup time happens to be in the past
 - log printing: separate seconds and milliseconds (relative timestamp since start) with a dot
-- elwb: listen timeout callback function added
+- eLWB listen timeout callback function added
 - new commands added: register node, set communication base period, set health period, set event message level, set TX power, set modulation
+- new events added: BOLT error
+- re-init BOLT in case a read operation fails, and timeout increased from 60 to 100us
+- elwb_start split into two functions (init and start), startup is now relative to the current time
+- eLWB D-ACK implemented and enabled
 
 v0.1.7
 - unused timer tim15 removed
