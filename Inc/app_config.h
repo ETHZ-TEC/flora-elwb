@@ -19,17 +19,17 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                7           /* 0..99 */
+#define FW_VERSION_PATCH                8           /* 0..99 */
 #define FLOCKLAB                        0
 #define BASEBOARD                       0
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
-#define LOW_POWER_MODE                  LP_MODE_SLEEP  //STOP2  /* low-power mode to use between rounds during periods of inactivity */
+#define LOW_POWER_MODE                  LP_MODE_STOP2  //SLEEP  /* low-power mode to use between rounds during periods of inactivity */
 
 /* network parameters */
 #if BASEBOARD
-  #define HOST_ID                       103
+  #define HOST_ID                       110
 #else
   #define HOST_ID                       2
 #endif /* BASEBOARD */
@@ -112,7 +112,7 @@
   #define LOG_ADD_TIMESTAMP             0       /* don't print the timestamp on FlockLab */
 #endif /* FLOCKLAB */
 #if SWO_ENABLE
-  #define LOG_PRINT_FUNC                swo_print
+  //#define LOG_PRINT_FUNC                swo_print
   //#define LOG_PRINT_IMMEDIATELY         1
 #endif /* SWO_ENABLE */
 
@@ -121,12 +121,12 @@
   #if FLOCKLAB
     #define ISR_ON_IND()                PIN_SET(FLOCKLAB_INT1)
     #define ISR_OFF_IND()               PIN_CLR(FLOCKLAB_INT1)
-    #define ELWB_RESUMED()              //PIN_SET(FLOCKLAB_LED1)
-    #define ELWB_SUSPENDED()            //PIN_CLR(FLOCKLAB_LED1)
-    #define POST_TASK_RESUMED()         //PIN_SET(FLOCKLAB_LED1)
-    #define POST_TASK_SUSPENDED()       //PIN_CLR(FLOCKLAB_LED1)
-    #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(FLOCKLAB_LED1)
-    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(FLOCKLAB_LED1)
+    #define ELWB_RESUMED()              //PIN_SET(FLOCKLAB_LED2)
+    #define ELWB_SUSPENDED()            //PIN_CLR(FLOCKLAB_LED2)
+    #define POST_TASK_RESUMED()         //PIN_SET(FLOCKLAB_LED2)
+    #define POST_TASK_SUSPENDED()       //PIN_CLR(FLOCKLAB_LED2)
+    #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(FLOCKLAB_LED2)
+    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(FLOCKLAB_LED2)
     #define RADIO_TX_START_IND()        PIN_SET(FLOCKLAB_LED3)
     #define RADIO_TX_STOP_IND()         PIN_CLR(FLOCKLAB_LED3)
     #define RADIO_RX_START_IND()        PIN_SET(FLOCKLAB_LED3)

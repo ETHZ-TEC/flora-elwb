@@ -32,10 +32,6 @@ uint32_t health_msg_period = NODE_HEALTH_MSG_PERIOD;
 
 /* Private variables ---------------------------------------------------------*/
 
-static dpp_message_t msg_buffer;
-static bool          node_info_sent = false;
-static uint32_t      last_health_pkt = 0;
-
 
 /* Functions -----------------------------------------------------------------*/
 
@@ -99,6 +95,10 @@ void check_stack_usage(void)
 
 void vTask_post(void const * argument)
 {
+  static dpp_message_t msg_buffer;
+  static uint32_t      last_health_pkt = 0;
+  static bool          node_info_sent  = false;
+
   LOG_INFO("Post task started");
 
   /* Infinite loop */

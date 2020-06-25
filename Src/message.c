@@ -125,7 +125,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
           LOG_WARNING("failed to add command to queue");
           EVENT_WARNING(EVENT_SX1262_QUEUE_FULL, 3);
         } else {
-          LOG_VERBOSE("baseboard command %u scheduled (time: %lu)", msg->cmd.type, sched_cmd.scheduled_time);
+          LOG_VERBOSE("baseboard command %u scheduled (time: %lu)", msg->cmd.type & 0xff, sched_cmd.scheduled_time);
         }
         successful = true;
         break;
@@ -144,6 +144,17 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
           }
         } else {
           config.bb_en.starttime = 0;
+        }
+        successful = true;
+        break;
+
+      case CMD_SX1262_BASEBOARD_POWER_EXT3:
+        if (msg->cmd.arg[0]) {
+          PIN_SET(BASEBOARD_EXT3_SWITCH);
+          LOG_INFO("EXT3 power enabled");
+        } else {
+          PIN_CLR(BASEBOARD_EXT3_SWITCH);
+          LOG_INFO("EXT3 power disabled");
         }
         successful = true;
         break;
@@ -223,7 +234,7 @@ void process_commands(void)
         send_command(CMD_BASEBOARD_WAKEUP_MODE, next_cmd->arg, 4);
         break;
       case CMD_SX1262_BASEBOARD_DISABLE:
-        //PIN_CLR(BASEBOARD_ENABLE);
+        PIN_CLR(BASEBOARD_ENABLE);
         LOG_INFO("baseboard disabled");
         break;
       default:

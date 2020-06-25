@@ -16,11 +16,12 @@ v0.1.8
 - potential issue fixed in eLWB where a recovery on the host node would not be possible if the scheduled wakeup time happens to be in the past
 - log printing: separate seconds and milliseconds (relative timestamp since start) with a dot
 - eLWB listen timeout callback function added
-- new commands added: register node, set communication base period, set health period, set event message level, set TX power, set modulation
-- new events added: BOLT error
+- new commands added: register node, set communication base period, set health period, set event message level, set TX power, set modulation, EXT3 power enable
+- new event added: BOLT error
 - re-init BOLT in case a read operation fails, and timeout increased from 60 to 100us
 - elwb_start split into two functions (init and start), startup is now relative to the current time
 - eLWB D-ACK implemented and enabled
+- FlockLab pin mappings adjusted for rev1.1 adapter
 
 v0.1.7
 - unused timer tim15 removed
