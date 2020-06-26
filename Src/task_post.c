@@ -99,7 +99,7 @@ void vTask_post(void const * argument)
   static uint32_t      last_health_pkt = 0;
   static bool          node_info_sent  = false;
 
-  LOG_INFO("Post task started");
+  LOG_VERBOSE("Post task started");
 
   /* Infinite loop */
   for(;;)

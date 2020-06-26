@@ -22,6 +22,7 @@ v0.1.8
 - elwb_start split into two functions (init and start), startup is now relative to the current time
 - eLWB D-ACK implemented and enabled
 - FlockLab pin mappings adjusted for rev1.1 adapter
+- issue in eLWB fixed (t_slot_ofs overflow)
 
 v0.1.7
 - unused timer tim15 removed

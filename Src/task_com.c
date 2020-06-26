@@ -28,7 +28,7 @@ void listen_timeout(void)
 /* communication task */
 void vTask_com(void const * argument)
 {
-  LOG_INFO("eLWB task started");
+  LOG_VERBOSE("eLWB task started");
 
   /* load the UNIX timestamp from the RTC, convert it to microseconds and add the static startup delay */
   uint32_t currtime;

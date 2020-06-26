@@ -147,7 +147,7 @@ void update_time(void)
 /* pre communication round task */
 void vTask_pre(void const * argument)
 {
-  LOG_INFO("pre task started");
+  LOG_VERBOSE("pre task started");
 
   /* check message size */
   if (sizeof(dpp_message_t) > DPP_MSG_PKT_LEN || DPP_MSG_PKT_LEN > BOLT_MAX_MSG_LEN) {
@@ -204,8 +204,8 @@ void vTask_pre(void const * argument)
 #if BASEBOARD_TREQ_WATCHDOG && BASEBOARD
     /* only use time request watchdog when baseboard is enabled */
     if (PIN_STATE(BASEBOARD_ENABLE)) {
-  #if TIMESTAMP_USE_HS_TIMER
       bool powercycle = false;
+  #if TIMESTAMP_USE_HS_TIMER
       /* check when was the last time we got a time request */
       if (((hs_timer_now() - bolt_trq_hs_timestamp) / HS_TIMER_FREQUENCY) > BASEBOARD_TREQ_WATCHDOG) {
         bolt_trq_hs_timestamp = hs_timer_now();

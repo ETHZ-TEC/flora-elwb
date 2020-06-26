@@ -29,7 +29,7 @@
 
 /* network parameters */
 #if BASEBOARD
-  #define HOST_ID                       110
+  #define HOST_ID                       103  //110
 #else
   #define HOST_ID                       2
 #endif /* BASEBOARD */
@@ -42,7 +42,7 @@
 #define TIMESTAMP_TYPICAL_DRIFT         100   /* typical drift +/- in ppm (if exceeded, a warning will be issued) */
 #define TIMESTAMP_MAX_DRIFT             150   /* max. allowed drift in ppm (higher values will be capped) */
 #define TIMESTAMP_MAX_OFFSET_MS         10    /* max. allowed offset in ms that the host tries to compensate; if larger, a jump in time occurs. set to 0 to always make a jump */
-#define TIMESTAMP_USE_HS_TIMER          (LOW_POWER_MODE == LP_MODE_SLEEP)   /* don't use hs_timer for timestamping events on the TREQ pin if LPM != SLEEP */
+#define TIMESTAMP_USE_HS_TIMER          0     /* don't use hs_timer for timestamping events on the TREQ pin if LPM != SLEEP */
 
 /* data collection config */
 #define NODE_HEALTH_MSG_PERIOD          300
@@ -121,12 +121,12 @@
   #if FLOCKLAB
     #define ISR_ON_IND()                PIN_SET(FLOCKLAB_INT1)
     #define ISR_OFF_IND()               PIN_CLR(FLOCKLAB_INT1)
-    #define ELWB_RESUMED()              //PIN_SET(FLOCKLAB_LED2)
-    #define ELWB_SUSPENDED()            //PIN_CLR(FLOCKLAB_LED2)
-    #define POST_TASK_RESUMED()         //PIN_SET(FLOCKLAB_LED2)
-    #define POST_TASK_SUSPENDED()       //PIN_CLR(FLOCKLAB_LED2)
-    #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(FLOCKLAB_LED2)
-    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(FLOCKLAB_LED2)
+    #define ELWB_RESUMED()              //PIN_SET(FLOCKLAB_INT2)
+    #define ELWB_SUSPENDED()            //PIN_CLR(FLOCKLAB_INT2)
+    #define POST_TASK_RESUMED()         //PIN_SET(FLOCKLAB_INT2)
+    #define POST_TASK_SUSPENDED()       //PIN_CLR(FLOCKLAB_INT2)
+    #define GLORIA_START_IND()          led_on(LED_SYSTEM); PIN_SET(FLOCKLAB_INT2)
+    #define GLORIA_STOP_IND()           led_off(LED_SYSTEM); PIN_CLR(FLOCKLAB_INT2)
     #define RADIO_TX_START_IND()        PIN_SET(FLOCKLAB_LED3)
     #define RADIO_TX_STOP_IND()         PIN_CLR(FLOCKLAB_LED3)
     #define RADIO_RX_START_IND()        PIN_SET(FLOCKLAB_LED3)
