@@ -158,11 +158,6 @@ int main(void)
 
   system_init();
 
-  while (1) {
-    led_toggle(LED_SYSTEM);
-    delay_us(500000);
-  }
-
   /* initialize state machine for handling low-power modes */
   update_opmode(OP_MODE_EVT_INIT);
 
