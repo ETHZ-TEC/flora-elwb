@@ -25,7 +25,6 @@
 #define BOLT_ENABLE                     (!FLOCKLAB)
 #define SWO_ENABLE                      0
 #define CLI_ENABLE                      0
-#define LOW_POWER_MODE                  LP_MODE_STOP2  //SLEEP  /* low-power mode to use between rounds during periods of inactivity */
 
 /* network parameters */
 #if BASEBOARD
@@ -38,11 +37,19 @@
 #endif /* FLOCKLAB */
 #define IS_HOST                         (NODE_ID == HOST_ID)
 
+/* energy (low-power mode) */
+#if SWO_ENABLE
+  #define LOW_POWER_MODE                LP_MODE_SLEEP  /* low-power mode to use between rounds during periods of inactivity */
+  #define TIMESTAMP_USE_HS_TIMER        1              /* use hs_timer for timestamping events on the TREQ pin for better accuracy */
+#else /* SWO_ENABLE */
+  #define LOW_POWER_MODE                LP_MODE_STOP2  /* low-power mode to use between rounds during periods of inactivity */
+  #define TIMESTAMP_USE_HS_TIMER        0              /* don't use hs_timer for timestamping events on the TREQ pin if LPM != SLEEP */
+#endif /* SWO_ENABLE */
+
 /* time sync and drift compensation */
 #define TIMESTAMP_TYPICAL_DRIFT         100   /* typical drift +/- in ppm (if exceeded, a warning will be issued) */
 #define TIMESTAMP_MAX_DRIFT             150   /* max. allowed drift in ppm (higher values will be capped) */
 #define TIMESTAMP_MAX_OFFSET_MS         10    /* max. allowed offset in ms that the host tries to compensate; if larger, a jump in time occurs. set to 0 to always make a jump */
-#define TIMESTAMP_USE_HS_TIMER          0     /* don't use hs_timer for timestamping events on the TREQ pin if LPM != SLEEP */
 
 /* data collection config */
 #define NODE_HEALTH_MSG_PERIOD          300
@@ -119,7 +126,7 @@
 /* debugging */
 #if !BASEBOARD
   #if FLOCKLAB
-    #define ISR_ON_IND()                PIN_SET(FLOCKLAB_INT1)
+    #define ISR_ON_IND()                PIN_SET(FLOCKLAB_INT1)    // if unused, insert 2x NOP here
     #define ISR_OFF_IND()               PIN_CLR(FLOCKLAB_INT1)
     #define ELWB_RESUMED()              //PIN_SET(FLOCKLAB_INT2)
     #define ELWB_SUSPENDED()            //PIN_CLR(FLOCKLAB_INT2)
@@ -138,7 +145,7 @@
     #define LPM_OFF_IND()               //PIN_SET(COM_GPIO1)
     #define IDLE_TASK_RESUMED()         //PIN_SET(COM_GPIO2)
     #define IDLE_TASK_SUSPENDED()       //PIN_CLR(COM_GPIO2)
-    #define ISR_ON_IND()                PIN_SET(COM_GPIO2)
+    #define ISR_ON_IND()                PIN_SET(COM_GPIO2)      // if unused, insert 2x NOP here
     #define ISR_OFF_IND()               PIN_CLR(COM_GPIO2)
     #define ELWB_RESUMED()              //PIN_SET(COM_GPIO1)
     #define ELWB_SUSPENDED()            //PIN_CLR(COM_GPIO1)

@@ -11,6 +11,10 @@
 
 /*
 
+v0.1.9
+- use low-power mode SLEEP if SWO is enabled
+- add NOPs when ISR IND not used
+
 v0.1.8
 - issue fixed where periodic baseboard wakeup would not work properly when a jump in time occurs
 - potential issue fixed in eLWB where a recovery on the host node would not be possible if the scheduled wakeup time happens to be in the past

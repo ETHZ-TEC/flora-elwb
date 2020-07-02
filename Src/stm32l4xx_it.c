@@ -35,7 +35,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #ifndef ISR_ON_IND
-#define ISR_ON_IND()
+#define ISR_ON_IND()          __NOP(); __NOP()      /* make sure #instructions does not change */
 #define ISR_OFF_IND()
 #endif /* ISR_ON_IND */
 /* USER CODE END PD */
