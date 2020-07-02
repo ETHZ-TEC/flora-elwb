@@ -74,8 +74,6 @@ void update_opmode(op_mode_event_t evt)
 /* prepare the MCU for low power mode */
 void lpm_prepare(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = { 0 };
-
 #if configUSE_TICKLESS_IDLE
   /* stop the HAL tick independent of the operating mode if tickless idle is selected */
   HAL_SuspendTick();
@@ -138,11 +136,7 @@ void lpm_prepare(void)
       if(HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) { Error_Handler(); }
 
       /* configure unused GPIOs for minimal current drain (make sure there are no floating inputs) */
-      GPIO_InitStruct.Mode  = GPIO_MODE_INPUT;
-      GPIO_InitStruct.Pin   = UART_RX_Pin | UART_TX_Pin;    /* reconfigure UART pins */
-      GPIO_InitStruct.Pull  = GPIO_PULLUP;
-      GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-      HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+      /* currently nothing to do */
 
       /* turn off LEDs */
       led_off(LED_EVENT);
@@ -151,6 +145,7 @@ void lpm_prepare(void)
 
   #if BOLT_ENABLE
       /* configure BOLT TREQ in EXTI mode */
+      GPIO_InitTypeDef GPIO_InitStruct = { 0 };
       GPIO_InitStruct.Pin = COM_TREQ_Pin;
       GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
       GPIO_InitStruct.Pull = GPIO_PULLDOWN;
@@ -201,7 +196,7 @@ void lpm_prepare(void)
 
 void lpm_resume(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+  //GPIO_InitTypeDef GPIO_InitStruct = { 0 };
 
   if (op_mode == OP_MODE_WOKEN) {
     /* MCU was in STOP2, STANDBY, or SHUTDOWN mode, different components need to be restored */
@@ -215,10 +210,10 @@ void lpm_resume(void)
     CLEAR_BIT(SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));
 
     /* make sure all required clocks are enabled */
-    __HAL_RCC_GPIOA_CLK_ENABLE();
+    /*__HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOH_CLK_ENABLE();
+    __HAL_RCC_GPIOH_CLK_ENABLE();*/
     __HAL_RCC_DMA1_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_RCC_SYSCFG_CLK_ENABLE();
@@ -227,12 +222,7 @@ void lpm_resume(void)
     SystemClock_Config();                               /* restore clock config (and resume HAL tick) */
 
     /* restore GPIO config */
-    GPIO_InitStruct.Pin   = UART_TX_Pin | UART_RX_Pin;
-    GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull  = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    /* currently nothing to do */
 
     /* restore peripherals */
     __HAL_TIM_ENABLE(&htim2);

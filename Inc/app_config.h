@@ -20,11 +20,12 @@
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
 #define FW_VERSION_PATCH                8           /* 0..99 */
-#define FLOCKLAB                        0
-#define BASEBOARD                       0
-#define BOLT_ENABLE                     (!FLOCKLAB)
-#define SWO_ENABLE                      0
-#define CLI_ENABLE                      0
+
+#define FLOCKLAB                        0           /* set to 1 to run on FlockLab */
+#define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
+#define FLOCKLAB_SWD                    0           /* set to 1 to reserve SWDIO / SWDCLK pins for debugging (GPIOs not available for tracing) */
+#define SWO_ENABLE                      0           /* set to 1 to enable data tracing or serial printing via SWO pin */
+#define CLI_ENABLE                      0           /* command line interface */
 
 /* network parameters */
 #if BASEBOARD
@@ -68,7 +69,7 @@
 #define NVCFG_BLOCK_SIZE                16   /* note: must be sizeof(nv_config_t)! */
 
 /* Gloria config */
-#define GLORIA_INTERFACE_MODULATION     10   /* FSK 250kbit/s */
+#define GLORIA_INTERFACE_MODULATION     7    /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
 #if FLOCKLAB
   #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options) */
 #else
@@ -77,11 +78,17 @@
 
 /* eLWB config */
 #define ELWB_ENABLE                     1
-#define ELWB_CONF_STARTUP_DELAY         1000
 #define ELWB_CONF_N_TX                  2
-#define ELWB_CONF_T_SCHED               (ELWB_TIMER_SECOND / 50)      /* 20ms */
-#define ELWB_CONF_T_DATA                (ELWB_TIMER_SECOND / 50)      /* 20ms */
-#define ELWB_CONF_T_CONT                (ELWB_TIMER_SECOND / 100)     /* 10ms */
+#if GLORIA_INTERFACE_MODULATION < 8          /* LoRa modulations require longer slot lengths */
+  #define ELWB_CONF_T_SCHED             (ELWB_TIMER_SECOND / 20)      /* 50ms */
+  #define ELWB_CONF_T_DATA              (ELWB_TIMER_SECOND / 20)      /* 50ms */
+  #define ELWB_CONF_T_CONT              (ELWB_TIMER_SECOND / 25)      /* 40ms */
+#else
+  #define ELWB_CONF_T_SCHED             (ELWB_TIMER_SECOND / 50)      /* 20ms */
+  #define ELWB_CONF_T_DATA              (ELWB_TIMER_SECOND / 50)      /* 20ms */
+  #define ELWB_CONF_T_CONT              (ELWB_TIMER_SECOND / 100)     /* 10ms */
+#endif /* GLORIA_INTERFACE_MODULATION */
+#define ELWB_CONF_T_GAP                 (ELWB_TIMER_SECOND / 200)     /* 5ms */
 #define ELWB_CONF_SCHED_PERIOD_IDLE     15
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_CONF_DATA_ACK              1
@@ -103,6 +110,7 @@
 #define LPTIMER_RESET_WDG_ON_EXP        1
 #define LPTIMER_CHECK_EXP_TIME          1
 #define UART_FIFO_BUFFER_SIZE           1     /* not used */
+#define BOLT_ENABLE                     (!FLOCKLAB) /* BOLT is not available on FlockLab */
 
 /* logging */
 #define LOG_ENABLE                      1
@@ -176,7 +184,7 @@
 #error "can't use target FLOCKLAB and BASEBOARD at the same time"
 #endif
 
-#if FLOCKLAB && (HOST_ID < 2 || HOST_ID > 12)
+#if FLOCKLAB && (HOST_ID < 1 || HOST_ID > 25)
 #error "HOST_ID is invalid for target FLOCKLAB"
 #endif
 

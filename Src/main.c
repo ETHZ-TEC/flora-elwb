@@ -693,8 +693,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(BOLT_ACK_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : BOLT_REQ_Pin BOLT_MODE_Pin */
-  GPIO_InitStruct.Pin = BOLT_REQ_Pin|BOLT_MODE_Pin;
+  /*Configure GPIO pins : BOLT_REQ_Pin BOLT_MODE_Pin RADIO_NSS_Pin */
+  GPIO_InitStruct.Pin = BOLT_REQ_Pin|BOLT_MODE_Pin|RADIO_NSS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -708,26 +708,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : RADIO_NSS_Pin */
-  GPIO_InitStruct.Pin = RADIO_NSS_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  HAL_GPIO_Init(RADIO_NSS_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : RADIO_NRESET_Pin */
-  GPIO_InitStruct.Pin = RADIO_NRESET_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(RADIO_NRESET_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : RADIO_ANT_SW_Pin */
-  GPIO_InitStruct.Pin = RADIO_ANT_SW_Pin;
+  /*Configure GPIO pins : RADIO_NRESET_Pin RADIO_ANT_SW_Pin */
+  GPIO_InitStruct.Pin = RADIO_NRESET_Pin|RADIO_ANT_SW_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(RADIO_ANT_SW_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : COM_GPIO1_Pin */
   GPIO_InitStruct.Pin = COM_GPIO1_Pin;

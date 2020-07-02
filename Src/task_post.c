@@ -57,6 +57,7 @@ void check_stack_usage(void)
     uint32_t usage = idleTaskStackWM * 100 / configMINIMAL_STACK_SIZE;
     if (usage > STACK_WARNING_THRESHOLD) {
       LOG_WARNING("stack watermark of idle task reached %u%%", usage);
+      EVENT_WARNING(EVENT_SX1262_STACK_WM, usage);
     } else {
       LOG_INFO("stack watermark of idle task increased to %u%%", usage);
     }
@@ -67,6 +68,7 @@ void check_stack_usage(void)
     uint32_t usage = preTaskStackWM * 100 / PRE_TASK_STACK_SIZE;
     if (usage > STACK_WARNING_THRESHOLD) {
       LOG_WARNING("stack watermark of pre task reached %u%%", usage);
+      EVENT_WARNING(EVENT_SX1262_STACK_WM, 0x00010000 | usage);
     } else {
       LOG_INFO("stack watermark of pre task increased to %u%%", usage);
     }
@@ -77,6 +79,7 @@ void check_stack_usage(void)
     uint32_t usage = comTaskStackWM * 100 / COM_TASK_STACK_SIZE;
     if (usage > STACK_WARNING_THRESHOLD) {
       LOG_WARNING("stack watermark of com task reached %u%%", usage);
+      EVENT_WARNING(EVENT_SX1262_STACK_WM, 0x00020000 | usage);
     } else {
       LOG_INFO("stack watermark of com task increased to %u%%", usage);
     }
@@ -86,6 +89,7 @@ void check_stack_usage(void)
     uint32_t usage = postTaskStackWM * 100 / POST_TASK_STACK_SIZE;
     if (usage > STACK_WARNING_THRESHOLD) {
       LOG_WARNING("stack watermark of post task reached %u%%", usage);
+      EVENT_WARNING(EVENT_SX1262_STACK_WM, 0x00030000 | usage);
     } else {
       LOG_INFO("stack watermark of post task increased to %u%%", usage);
     }
