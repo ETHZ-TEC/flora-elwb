@@ -423,4 +423,4 @@ VP_TIM2_VS_no_output2.Signal=TIM2_VS_no_output2
 VP_TIM2_VS_no_output3.Mode=Output Compare3 No Output
 VP_TIM2_VS_no_output3.Signal=TIM2_VS_no_output3
 board=gloriaLwb_comboard
-isbadioc=true
+isbadioc=false
