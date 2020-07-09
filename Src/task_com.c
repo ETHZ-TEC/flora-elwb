@@ -6,7 +6,6 @@
  */
 
 #include "main.h"
-#include "protocol/elwb/elwb.h"
 
 
 /* Private variables ---------------------------------------------------------*/

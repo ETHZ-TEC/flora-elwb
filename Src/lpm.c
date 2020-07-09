@@ -26,6 +26,7 @@
 /* --- globals --- */
 
 extern LPTIM_HandleTypeDef hlptim1;
+extern TIM_HandleTypeDef   htim1;
 extern TIM_HandleTypeDef   htim2;
 extern TIM_HandleTypeDef   htim16;
 extern SPI_HandleTypeDef   hspi1;
@@ -106,6 +107,7 @@ void lpm_prepare(void)
       HAL_SuspendTick();
 
       /* disable all unused peripherals */
+      __HAL_TIM_DISABLE(&htim1);
       __HAL_TIM_DISABLE(&htim2);
       __HAL_TIM_DISABLE(&htim16);
       __HAL_UART_DISABLE(&huart1);
@@ -141,7 +143,9 @@ void lpm_prepare(void)
       /* turn off LEDs */
       led_off(LED_EVENT);
       led_off(LED_SYSTEM);
+  #if !FLOCKLAB
       PIN_CLR(COM_GPIO1);     /* has external pulldown */
+  #endif /* FLOCKLAB */
 
   #if BOLT_ENABLE
       /* configure BOLT TREQ in EXTI mode */
@@ -153,6 +157,12 @@ void lpm_prepare(void)
       HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
       HAL_NVIC_EnableIRQ(EXTI3_IRQn);
   #endif /* BOLT_ENABLE */
+
+      /* disable GPIO config clocks */
+      __HAL_RCC_GPIOA_CLK_DISABLE();
+      __HAL_RCC_GPIOB_CLK_DISABLE();
+      __HAL_RCC_GPIOC_CLK_DISABLE();
+      __HAL_RCC_GPIOH_CLK_DISABLE();
 
       /* disable and clear unused interrupts */
       HAL_NVIC_DisableIRQ(USART1_IRQn);
@@ -225,6 +235,7 @@ void lpm_resume(void)
     /* currently nothing to do */
 
     /* restore peripherals */
+    __HAL_TIM_ENABLE(&htim1);
     __HAL_TIM_ENABLE(&htim2);
     __HAL_TIM_ENABLE(&htim16);
     __HAL_UART_ENABLE(&huart1);

@@ -25,7 +25,6 @@
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
 #define FLOCKLAB_SWD                    0           /* set to 1 to reserve SWDIO / SWDCLK pins for debugging (GPIOs not available for tracing) */
 #define SWO_ENABLE                      0           /* set to 1 to enable data tracing or serial printing via SWO pin */
-#define CLI_ENABLE                      0           /* command line interface */
 
 /* network parameters */
 #if BASEBOARD
@@ -79,16 +78,10 @@
 /* eLWB config */
 #define ELWB_ENABLE                     1
 #define ELWB_CONF_N_TX                  2
-#if GLORIA_INTERFACE_MODULATION < 8          /* LoRa modulations require longer slot lengths */
-  #define ELWB_CONF_T_SCHED             (ELWB_TIMER_SECOND / 20)      /* 50ms */
-  #define ELWB_CONF_T_DATA              (ELWB_TIMER_SECOND / 20)      /* 50ms */
-  #define ELWB_CONF_T_CONT              (ELWB_TIMER_SECOND / 25)      /* 40ms */
-#else
-  #define ELWB_CONF_T_SCHED             (ELWB_TIMER_SECOND / 50)      /* 20ms */
-  #define ELWB_CONF_T_DATA              (ELWB_TIMER_SECOND / 50)      /* 20ms */
-  #define ELWB_CONF_T_CONT              (ELWB_TIMER_SECOND / 100)     /* 10ms */
-#endif /* GLORIA_INTERFACE_MODULATION */
-#define ELWB_CONF_T_GAP                 (ELWB_TIMER_SECOND / 200)     /* 5ms */
+#define ELWB_CONF_T_SCHED               ELWB_MS_TO_TICKS(100)   /* use GLORIA_INTERFACE_FLOOD_DURATION() to calculate a suitable value */
+#define ELWB_CONF_T_DATA                ELWB_MS_TO_TICKS(100)   /* use GLORIA_INTERFACE_FLOOD_DURATION() to calculate a suitable value */
+#define ELWB_CONF_T_CONT                ELWB_MS_TO_TICKS(40)    /* use GLORIA_INTERFACE_FLOOD_DURATION() to calculate a suitable value */
+#define ELWB_CONF_T_GAP                 ELWB_MS_TO_TICKS(5)
 #define ELWB_CONF_SCHED_PERIOD_IDLE     15
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_CONF_DATA_ACK              1
@@ -111,6 +104,7 @@
 #define LPTIMER_CHECK_EXP_TIME          1
 #define UART_FIFO_BUFFER_SIZE           1     /* not used */
 #define BOLT_ENABLE                     (!FLOCKLAB) /* BOLT is not available on FlockLab */
+#define CLI_ENABLE                      0           /* command line interface */
 
 /* logging */
 #define LOG_ENABLE                      1
