@@ -3,7 +3,7 @@
  * Low-power mode management and application state machine
  *
  *  Created on: Apr 21, 2020
- *      Author: keepcoding
+ *      Author: rdaforno
  */
 
 /*
@@ -206,8 +206,6 @@ void lpm_prepare(void)
 
 void lpm_resume(void)
 {
-  //GPIO_InitTypeDef GPIO_InitStruct = { 0 };
-
   if (op_mode == OP_MODE_WOKEN) {
     /* MCU was in STOP2, STANDBY, or SHUTDOWN mode, different components need to be restored */
 
@@ -220,14 +218,14 @@ void lpm_resume(void)
     CLEAR_BIT(SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));
 
     /* make sure all required clocks are enabled */
-    /*__HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
-    __HAL_RCC_GPIOH_CLK_ENABLE();*/
-    __HAL_RCC_DMA1_CLK_ENABLE();
+    __HAL_RCC_GPIOH_CLK_ENABLE();
+    //__HAL_RCC_DMA1_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
     __HAL_RCC_SYSCFG_CLK_ENABLE();
-    __HAL_RCC_FLASH_CLK_ENABLE();
+    //__HAL_RCC_FLASH_CLK_ENABLE();
 
     SystemClock_Config();                               /* restore clock config (and resume HAL tick) */
 
