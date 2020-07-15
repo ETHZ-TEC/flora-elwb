@@ -78,9 +78,9 @@
 /* eLWB config */
 #define ELWB_ENABLE                     1
 #define ELWB_CONF_N_TX                  2
-#define ELWB_CONF_T_SCHED               ELWB_MS_TO_TICKS(100)   /* use GLORIA_INTERFACE_FLOOD_DURATION() to calculate a suitable value */
-#define ELWB_CONF_T_DATA                ELWB_MS_TO_TICKS(100)   /* use GLORIA_INTERFACE_FLOOD_DURATION() to calculate a suitable value */
-#define ELWB_CONF_T_CONT                ELWB_MS_TO_TICKS(40)    /* use GLORIA_INTERFACE_FLOOD_DURATION() to calculate a suitable value */
+#define ELWB_CONF_T_SCHED               GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
+#define ELWB_CONF_T_DATA                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
+#define ELWB_CONF_T_CONT                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, 2)
 #define ELWB_CONF_T_GAP                 ELWB_MS_TO_TICKS(5)
 #define ELWB_CONF_SCHED_PERIOD_IDLE     15
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
