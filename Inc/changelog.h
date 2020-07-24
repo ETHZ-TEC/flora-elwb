@@ -11,11 +11,15 @@
 
 /*
 
+v0.1.10
+- bugfix in eLWB
+
 v0.1.9
 - use low-power mode SLEEP if SWO is enabled
 - add NOPs when ISR IND not used
 - new event message: stack watermark warning
-- default communication band changed to LoRa SF5 (slot sizes of eLWB adjusted accordingly)
+- default communication band changed to LoRa SF5
+- eLWB slot size is now calculated at compile time
 
 v0.1.8
 - issue fixed where periodic baseboard wakeup would not work properly when a jump in time occurs
