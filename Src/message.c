@@ -399,10 +399,10 @@ void send_node_health(void)
   msg_buffer.com_health.radio_tx_dc   = radio_get_tx_dc() / 100;
   radio_dc_counter_reset();
 
+  LOG_INFO("health msg generated");
+
   /* the host must send to BOLT, all other nodes to the network */
   send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_COM_HEALTH, 0, 0, IS_HOST);
-
-  LOG_INFO("health msg generated");
 }
 
 void send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val)

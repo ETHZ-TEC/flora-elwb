@@ -167,7 +167,7 @@ void vTask_post(void const * argument)
 
     /* print some stats */
     LOG_INFO("CPU duty cycle:  %u%%    radio duty cycle (rx/tx):  %uppm/%uppm", (uint16_t)rtos_get_cpu_dc() / 100, radio_get_rx_dc(), radio_get_tx_dc());
-    LOG_VERBOSE("post task executed");
+    //LOG_VERBOSE("post task executed");
 
     /* flush the log print queue */
 #if !LOG_PRINT_IMMEDIATELY

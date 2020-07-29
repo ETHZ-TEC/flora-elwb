@@ -11,6 +11,10 @@
 
 /*
 
+v0.1.11
+- minor change to log printing in eLWB and more error checks added
+- use FSK on FlockLab
+
 v0.1.10
 - bugfix in eLWB
 

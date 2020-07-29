@@ -241,6 +241,6 @@ void vTask_pre(void const * argument)
     /* wake the radio */
     radio_wakeup();
 
-    LOG_VERBOSE("pre task executed");
+    //LOG_VERBOSE("pre task executed");
   }
 }

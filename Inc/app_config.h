@@ -19,7 +19,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                10          /* 0..99 */
+#define FW_VERSION_PATCH                11          /* 0..99 */
 
 #define FLOCKLAB                        0           /* set to 1 to run on FlockLab */
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
@@ -43,7 +43,7 @@
   #define TIMESTAMP_USE_HS_TIMER        1              /* use hs_timer for timestamping events on the TREQ pin for better accuracy */
 #else /* SWO_ENABLE */
   #define LOW_POWER_MODE                LP_MODE_STOP2  /* low-power mode to use between rounds during periods of inactivity */
-  #define TIMESTAMP_USE_HS_TIMER        0              /* don't use hs_timer for timestamping events on the TREQ pin if LPM != SLEEP */
+  #define TIMESTAMP_USE_HS_TIMER        0              /* don't use hs_timer for timestamping events on the TREQ pin  to safe energy */
 #endif /* SWO_ENABLE */
 
 /* time sync and drift compensation */
@@ -52,7 +52,7 @@
 #define TIMESTAMP_MAX_OFFSET_MS         10    /* max. allowed offset in ms that the host tries to compensate; if larger, a jump in time occurs. set to 0 to always make a jump */
 
 /* data collection config */
-#define NODE_HEALTH_MSG_PERIOD          300
+#define NODE_HEALTH_MSG_PERIOD          300   /* in seconds */
 
 /* memory */
 #define PRE_TASK_STACK_SIZE             256                             /* in # words of 4 bytes */
@@ -68,10 +68,11 @@
 #define NVCFG_BLOCK_SIZE                16   /* note: must be sizeof(nv_config_t)! */
 
 /* Gloria config */
-#define GLORIA_INTERFACE_MODULATION     7    /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
 #if FLOCKLAB
+  #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
   #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options) */
 #else
+  #define GLORIA_INTERFACE_MODULATION   7    /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
   #define GLORIA_INTERFACE_RF_BAND      48   /* 869.46 MHz (see table in radio_constants.c for options) */
 #endif /* FLOCKLAB */
 
