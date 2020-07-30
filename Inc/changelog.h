@@ -11,6 +11,10 @@
 
 /*
 
+v0.1.12
+- bugfix in D-ACK feature of eLWB (payload overwritten)
+- default RF mode changed to FSK
+
 v0.1.11
 - minor change to log printing in eLWB and more error checks added
 - use FSK on FlockLab

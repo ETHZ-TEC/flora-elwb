@@ -28,7 +28,7 @@
 
 /* network parameters */
 #if BASEBOARD
-  #define HOST_ID                       103  //110
+  #define HOST_ID                       103
 #else
   #define HOST_ID                       2
 #endif /* BASEBOARD */
@@ -72,7 +72,7 @@
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
   #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options) */
 #else
-  #define GLORIA_INTERFACE_MODULATION   7    /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
+  #define GLORIA_INTERFACE_MODULATION   10    /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
   #define GLORIA_INTERFACE_RF_BAND      48   /* 869.46 MHz (see table in radio_constants.c for options) */
 #endif /* FLOCKLAB */
 
