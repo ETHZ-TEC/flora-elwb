@@ -11,6 +11,10 @@
 
 /*
 
+v0.1.13
+- only update RTC in post task if eLWB time is reasonable (t >> 0)
+- post task notification before starting the eLWB removed (caused issues)
+
 v0.1.12
 - bugfix in D-ACK feature of eLWB (payload overwritten)
 - default RF mode changed to FSK
