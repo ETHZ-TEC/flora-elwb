@@ -19,7 +19,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                13          /* 0..99 */
+#define FW_VERSION_PATCH                14          /* 0..99 */
 
 #define FLOCKLAB                        0           /* set to 1 to run on FlockLab */
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
@@ -78,10 +78,11 @@
 
 /* eLWB config */
 #define ELWB_ENABLE                     1
-#define ELWB_CONF_N_TX                  2
-#define ELWB_CONF_T_SCHED               GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
-#define ELWB_CONF_T_DATA                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
-#define ELWB_CONF_T_CONT                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, 2)
+#define ELWB_CONF_N_TX                  2    /* number of transmissions */
+#define ELWB_NUM_HOPS                   3    /* network diameter in number of hops */
+#define ELWB_CONF_T_SCHED               GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
+#define ELWB_CONF_T_DATA                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
+#define ELWB_CONF_T_CONT                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, 2)
 #define ELWB_CONF_T_GAP                 ELWB_MS_TO_TICKS(5)
 #define ELWB_CONF_SCHED_PERIOD_IDLE     15
 #define ELWB_CONF_SCHED_PERIOD_MAX      120

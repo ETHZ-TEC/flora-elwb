@@ -89,7 +89,7 @@ void StartDefaultTask(void const * argument);
 void load_config(void)
 {
   /* load the config struct */
-  if (!nvcfg_load(&config) || (config.node_id == 0 && config.rst_cnt == 0)) {
+  if (!nvcfg_load(&config) || config.node_id == 0 || config.node_id == FLOCKLAB_NODE_ID || config.node_id != NODE_ID) {
     LOG_WARNING("failed to load config (default config applied)");
     memset(&config, 0, sizeof(nv_config_t));
     config.node_id = NODE_ID;

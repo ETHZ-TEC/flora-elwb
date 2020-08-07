@@ -46,7 +46,7 @@ void vTask_com(void const * argument)
 
   /* start eLWB */
   elwb_init(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, xQueueHandle_retransmit, listen_timeout);
-  elwb_start();
+  elwb_start(HOST_ID);
   FATAL_ERROR("eLWB task terminated");
 
   /* for debugging purposes only if eLWB is not used */

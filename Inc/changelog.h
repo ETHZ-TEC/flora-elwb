@@ -11,6 +11,10 @@
 
 /*
 
+v0.1.14
+- issue fixed where a previously set node ID would persist even after reprogramming the node
+- config parameter ELWB_NUM_HOPS added, is passed to GLORIA_INTERFACE_FLOOD_DURATION() for slot calculation
+
 v0.1.13
 - only update RTC in post task if eLWB time is reasonable (t >> 0)
 - post task notification before starting the eLWB removed (caused issues)
