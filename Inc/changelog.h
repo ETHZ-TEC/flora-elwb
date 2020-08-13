@@ -11,6 +11,9 @@
 
 /*
 
+v0.1.16
+- print radio frequency and modulation at startup
+
 v0.1.15
 - option added to force overwrite node ID (in conjunction with non-volatile config)
 - TX power parameter added to app_config

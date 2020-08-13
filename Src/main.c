@@ -155,6 +155,7 @@ int main(void)
   LOG_INFO("compile date: %s", __TIMESTAMP__);
   LOG_INFO("node ID: %u", NODE_ID);
   LOG_INFO("reset flag: %s", system_get_reset_cause(0));
+  LOG_INFO("radio config: %.3fMHz (ch %d), modulation %d, %ddBm", (float)(radio_bands[GLORIA_INTERFACE_RF_BAND].centerFrequency / 1000000.0f), GLORIA_INTERFACE_RF_BAND, GLORIA_INTERFACE_MODULATION, GLORIA_INTERFACE_POWER);
 
 #if !FLOCKLAB
   load_config();
