@@ -13,6 +13,7 @@
 
 v0.1.16
 - print radio frequency and modulation at startup
+- bugfix in eLWB (condition for exiting bootstrap mode adjusted)
 
 v0.1.15
 - option added to force overwrite node ID (in conjunction with non-volatile config)
