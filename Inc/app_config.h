@@ -19,7 +19,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                1           /* 0..99 */
-#define FW_VERSION_PATCH                14          /* 0..99 */
+#define FW_VERSION_PATCH                15          /* 0..99 */
 
 #define FLOCKLAB                        0           /* set to 1 to run on FlockLab */
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
@@ -36,6 +36,7 @@
   #define NODE_ID                       HOST_ID
 #endif /* FLOCKLAB */
 #define IS_HOST                         (NODE_ID == HOST_ID)
+#define WRITE_NODE_ID                   0           /* 1 = force node ID overwrite, 0 = use ID stored in NV config if available */
 
 /* energy (low-power mode) */
 #if SWO_ENABLE
@@ -68,11 +69,16 @@
 #define NVCFG_BLOCK_SIZE                16   /* note: must be sizeof(nv_config_t)! */
 
 /* Gloria config */
+#define GLORIA_INTERFACE_POWER          0    /* transmit power in dBm (max. value is 14 for most RF bands) */
 #if FLOCKLAB
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
   #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options) */
+#elif BASEBOARD
+  /* configuration for the deployment */
+  #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
+  #define GLORIA_INTERFACE_RF_BAND      43   /* 869.46 MHz (see table in radio_constants.c for options) */
 #else
-  #define GLORIA_INTERFACE_MODULATION   10    /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
+  #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
   #define GLORIA_INTERFACE_RF_BAND      48   /* 869.46 MHz (see table in radio_constants.c for options) */
 #endif /* FLOCKLAB */
 
@@ -127,6 +133,7 @@
   //#define LOG_PRINT_FUNC                swo_print
   //#define LOG_PRINT_IMMEDIATELY         1
 #endif /* SWO_ENABLE */
+//#define LOG_PRINT_IMMEDIATELY           1       /* enable immediate printing for easier debugging */
 
 /* debugging */
 #if !BASEBOARD

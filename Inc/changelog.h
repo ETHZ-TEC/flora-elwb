@@ -11,6 +11,12 @@
 
 /*
 
+v0.1.15
+- option added to force overwrite node ID (in conjunction with non-volatile config)
+- TX power parameter added to app_config
+- simple baseboard detection added based on the BASEBOARD_ENABLE pin
+- baseboard on/off command is now only accepted by source nodes
+
 v0.1.14
 - issue fixed where a previously set node ID would persist even after reprogramming the node
 - config parameter ELWB_NUM_HOPS added, is passed to GLORIA_INTERFACE_FLOOD_DURATION() for slot calculation

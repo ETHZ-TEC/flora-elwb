@@ -108,7 +108,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 
       case CMD_SX1262_BASEBOARD_ENABLE:
       case CMD_SX1262_BASEBOARD_DISABLE:
-        if (false && IS_HOST) {   // TODO remove 'false'
+        if (IS_HOST) {
           break;    /* host node is not supposed to turn off the baseboard */
         }
         sched_cmd.type           = msg->cmd.type;
@@ -131,7 +131,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         break;
 
       case CMD_SX1262_BASEBOARD_ENABLE_PERIODIC:
-        if (false && IS_HOST) {   // TODO remove 'false'
+        if (IS_HOST) {
           break;    /* host node is not supposed to turn off the baseboard */
         }
         config.bb_en.period = (uint32_t)msg->cmd.arg16[1] * 60;  /* convert to seconds */
