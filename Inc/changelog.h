@@ -11,6 +11,9 @@
 
 /*
 
+v0.1.17
+- flora lib update (toa calculation and radio constants)
+
 v0.1.16
 - print radio frequency and modulation at startup
 - bugfix in eLWB (condition for exiting bootstrap mode adjusted)
