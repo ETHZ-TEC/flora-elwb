@@ -11,6 +11,10 @@
 
 /*
 
+v0.1.18
+- flora lib update
+- elwb debug stats printing fixed (values swapped)
+
 v0.1.17
 - flora lib update (toa calculation and radio constants)
 

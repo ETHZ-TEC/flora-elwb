@@ -28,9 +28,9 @@
 
 /* network parameters */
 #if BASEBOARD
-  #define HOST_ID                       103
+  #define HOST_ID                       103         /* note: host ID is only used to determine whether a node is a host node (irrelevant for source nodes) */
 #else
-  #define HOST_ID                       2
+  #define HOST_ID                       2           /* note: host ID is only used to determine whether a node is a host node (irrelevant for source nodes) */
 #endif /* BASEBOARD */
 #if !FLOCKLAB
   #define NODE_ID                       HOST_ID
