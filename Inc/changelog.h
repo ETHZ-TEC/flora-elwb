@@ -11,6 +11,9 @@
 
 /*
 
+v0.1.19
+- elwb stats adjusted
+
 v0.1.18
 - flora lib update
 - elwb debug stats printing fixed (values swapped)
