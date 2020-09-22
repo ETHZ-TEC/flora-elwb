@@ -11,6 +11,10 @@
 
 /*
 
+v0.2.0
+- header with a configurable network ID added to all eLWB packets (unique IDs allows multiple networks to coexist)
+- issue fixed where a data packet could have been interpreted as an eLWB schedule packet
+
 v0.1.19
 - elwb stats adjusted
 
