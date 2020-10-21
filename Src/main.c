@@ -332,6 +332,7 @@ static void MX_LPTIM1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN LPTIM1_Init 2 */
+  __HAL_LPTIM_ENABLE_IT(&hlptim1, LPTIM_IT_CMPM);     /* must be enabled before starting the timer */
   HAL_LPTIM_Counter_Start_IT(&hlptim1, 0xffff);
   /* USER CODE END LPTIM1_Init 2 */
 
