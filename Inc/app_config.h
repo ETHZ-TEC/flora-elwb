@@ -129,6 +129,7 @@
 #endif /* BASEBOARD */
 #if FLOCKLAB
   #define LOG_ADD_TIMESTAMP             0       /* don't print the timestamp on FlockLab */
+  #define LOG_PRINT_IMMEDIATELY         1       /* enable immediate printing to get accurate timestamps on FlockLab */
 #endif /* FLOCKLAB */
 #if SWO_ENABLE
   //#define LOG_PRINT_FUNC                swo_print
