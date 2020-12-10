@@ -11,6 +11,11 @@
 
 /*
 
+v0.2.2
+- BOLT SPI clock speed reduced (resolved issue with corrupted messages)
+- UART speed on FlockLab reduced to 460800
+- updated to the latest Flora lib
+
 v0.2.1
 - applied necessary changes to make code compatible with latest flora lib
 - buffer overflow issue fixed in eLWB

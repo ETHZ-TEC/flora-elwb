@@ -1,9 +1,31 @@
 /*
- * lpm.c
- * Low-power mode management and application state machine
+ * Copyright (c) 2020, Swiss Federal Institute of Technology (ETH Zurich).
+ * All rights reserved.
  *
- *  Created on: Apr 21, 2020
- *      Author: rdaforno
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
@@ -21,6 +43,18 @@
 #define LPM_ON_IND()
 #define LPM_OFF_IND()
 #endif /* LPM_ON_IND */
+
+#ifndef LOW_POWER_MODE
+#define LOW_POWER_MODE     LP_MODE_SLEEP
+#endif /* LOW_POWER_MODE */
+
+#ifndef LPM_DISABLE_GPIO_CLOCKS
+#define LPM_DISABLE_GPIO_CLOCKS     1
+#endif /* LPM_DISABLE_GPIO_CLOCKS */
+
+#ifndef LPM_RADIO_COLD_SLEEP
+#define LPM_RADIO_COLD_SLEEP        1
+#endif /* LPM_RADIO_COLD_SLEEP */
 
 
 /* --- globals --- */
@@ -50,7 +84,6 @@ static const op_mode_t op_mode_state_machine[NUM_OP_MODES][NUM_OP_MODE_EVENTS] =
   /* state WOKEN: */  { OP_MODE_RESET,    OP_MODE_WOKEN,      OP_MODE_RESET,    OP_MODE_RESET,       OP_MODE_ACTIVE  },
   /* NOTE: for all invalid transitions, go back to RESET state */
 };
-static lp_mode_t lp_mode = LOW_POWER_MODE;    /* selected low-power mode */
 
 
 /* --- functions --- */
@@ -83,13 +116,13 @@ void lpm_prepare(void)
   /* only enter a low-power mode if the application is in idle state */
   if (op_mode == OP_MODE_IDLE)
   {
-    if (lp_mode == LP_MODE_SLEEP) {
+    if (LOW_POWER_MODE == LP_MODE_SLEEP) {
       /* do not update op_mode since we are already in IDLE and we are not entering a real LPM state */
       HAL_SuspendTick();
     }
-    else if (lp_mode >= LP_MODE_STOP2) {
+    else if (LOW_POWER_MODE >= LP_MODE_STOP2) {
       /* make sure the radio is in sleep mode */
-      radio_sleep(false);
+      radio_sleep(!LPM_RADIO_COLD_SLEEP);
 
       /* notes on stop mode:
       * - SRAM1, SRAM2 and all registers content are retained
@@ -114,7 +147,7 @@ void lpm_prepare(void)
       __HAL_SPI_DISABLE(&hspi1);
       __HAL_SPI_DISABLE(&hspi2);
       /* for STANDBY and SHUTDOWN: also disable LPTIM1 */
-      if (lp_mode == LP_MODE_STANDBY || lp_mode == LP_MODE_SHUTDOWN) {
+      if (LOW_POWER_MODE == LP_MODE_STANDBY || LOW_POWER_MODE == LP_MODE_SHUTDOWN) {
         LPTIM_Disable(&hlptim1);    /* use this instead of __HAL_LPTIM_DISABLE(), implements an errata workaround */
       }
 
@@ -159,10 +192,12 @@ void lpm_prepare(void)
   #endif /* BOLT_ENABLE */
 
       /* disable GPIO config clocks */
+  #if LPM_DISABLE_GPIO_CLOCKS   /* if clocks are disabled, GPIO state cannot be changed in LPM */
       __HAL_RCC_GPIOA_CLK_DISABLE();
       __HAL_RCC_GPIOB_CLK_DISABLE();
       __HAL_RCC_GPIOC_CLK_DISABLE();
       __HAL_RCC_GPIOH_CLK_DISABLE();
+  #endif /* LPM_DISABLE_GPIO_CLOCKS */
 
       /* disable and clear unused interrupts */
       HAL_NVIC_DisableIRQ(USART1_IRQn);
@@ -176,7 +211,7 @@ void lpm_prepare(void)
 
       /* configure RF_DIO1 on PC13 interrupt for wakeup from LPM */
       __HAL_GPIO_EXTI_CLEAR_IT(RADIO_DIO1_WAKEUP_Pin); // important for low-power consumption in STOP2 mode -> see README
-      /*if (lp_mode == LP_MODE_STOP2) {
+      /*if (LOW_POWER_MODE == LP_MODE_STOP2) {
         HAL_NVIC_SetPriority(RADIO_DIO1_WAKEUP_EXTI_IRQn, 5, 0);
         HAL_NVIC_EnableIRQ(RADIO_DIO1_WAKEUP_EXTI_IRQn);
       }*/
@@ -184,13 +219,13 @@ void lpm_prepare(void)
       /* make sure the flags of all WAKEUP lines are cleared */
       __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
 
-      if (lp_mode == LP_MODE_STOP2) {
+      if (LOW_POWER_MODE == LP_MODE_STOP2) {
         MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_STOP2);    /* set Stop mode 2 */
       }
-      else if (lp_mode == LP_MODE_STANDBY) {
+      else if (LOW_POWER_MODE == LP_MODE_STANDBY) {
         MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_STANDBY);  /* set Standby mode */
       }
-      else if (lp_mode == LP_MODE_SHUTDOWN) {
+      else if (LOW_POWER_MODE == LP_MODE_SHUTDOWN) {
         MODIFY_REG(PWR->CR1, PWR_CR1_LPMS, PWR_CR1_LPMS_SHUTDOWN); /* set Shutdown mode */
       }
       SET_BIT(SCB->SCR, ((uint32_t)SCB_SCR_SLEEPDEEP_Msk));        /* set SLEEPDEEP bit */

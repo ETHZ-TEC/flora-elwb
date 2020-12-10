@@ -85,6 +85,15 @@ void NMI_Handler(void)
 {
   /* USER CODE BEGIN NonMaskableInt_IRQn 0 */
   ISR_ON_IND();
+
+  if (__HAL_FLASH_GET_FLAG(FLASH_FLAG_ECCD)) {
+    /* corrupted flash memory -> most likely caused by the nvcfg */
+    LOG_ERROR("corrupted flash memory detected");
+#if NVCFG_ENABLE
+    nvcfg_erase();
+#endif /* NVCFG_ENABLE */
+    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ECCD);
+  }
   /* USER CODE END NonMaskableInt_IRQn 0 */
   /* USER CODE BEGIN NonMaskableInt_IRQn 1 */
   ISR_OFF_IND();
