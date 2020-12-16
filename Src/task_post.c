@@ -112,9 +112,6 @@ void vTask_post(void const * argument)
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);   /* wait for notification token */
     POST_TASK_RESUMED();
 
-    /* put the radio into sleep mode */
-    radio_sleep(false);
-
     /* process all packets rcvd from the network (regardless of whether there is space in the BOLT queue) */
     uint16_t rcvd = 0,
              forwarded = 0;

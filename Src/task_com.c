@@ -57,7 +57,7 @@ void vTask_com(void const * argument)
     ELWB_RESUMED();
     /* send a flood */
     const char payload[32] = "hello world!";
-    gloria_start(NODE_ID, (uint8_t*)payload, sizeof(payload), 2, 1);
+    gloria_start(NODE_ID == HOST_ID, (uint8_t*)payload, sizeof(payload), 2, 1);
     /* wait some time */
     vTaskDelay(MS_TO_RTOS_TICKS(100));
     /* stop the flood */
