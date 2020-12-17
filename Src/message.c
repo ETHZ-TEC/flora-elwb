@@ -347,7 +347,7 @@ void send_node_info(void)
   msg_buffer.node_info.compile_date = BUILD_TIME;   // UNIX timestamp
   msg_buffer.node_info.fw_ver       = (uint16_t)(FW_VERSION_MAJOR * 10000 + FW_VERSION_MINOR * 100 + FW_VERSION_PATCH);
   msg_buffer.node_info.rst_cnt      = config.rst_cnt;
-  uint32_t rst_flag;
+  uint8_t rst_flag;
   system_get_reset_cause(&rst_flag);
   msg_buffer.node_info.rst_flag     = rst_flag;
   msg_buffer.node_info.sw_rev_id    = GIT_REV_INT;
