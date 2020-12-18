@@ -11,6 +11,11 @@
 
 /*
 
+v0.2.3
+- minor bugfixes (startup phase, sx1262 image calibration)
+- schedule init moved to elwb_init()
+- max. number of nodes increased to 30
+
 v0.2.2
 - BOLT SPI clock speed reduced (resolved issue with corrupted messages)
 - UART speed on FlockLab reduced to 460800

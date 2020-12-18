@@ -19,7 +19,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                2           /* 0..99 */
-#define FW_VERSION_PATCH                2           /* 0..99 */
+#define FW_VERSION_PATCH                3           /* 0..99 */
 
 #define FLOCKLAB                        0           /* set to 1 to run on FlockLab */
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
@@ -95,9 +95,12 @@
 #define ELWB_CONF_SCHED_PERIOD_MIN      5
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_CONF_DATA_ACK              1
+#define ELWB_CONF_MAX_NODES             30
+#define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_IS_HOST()                  IS_HOST
 #define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 20)      /* 50ms */
+//#define ELWB_CONF_SCHED_NODE_LIST       1, 3, 4, 5, 6    /* nodes to pre-register in the scheduler */
 
 /* baseboard */
 #if BASEBOARD
