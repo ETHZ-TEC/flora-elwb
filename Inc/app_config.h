@@ -21,7 +21,7 @@
 #define FW_VERSION_MINOR                2           /* 0..99 */
 #define FW_VERSION_PATCH                3           /* 0..99 */
 
-#define FLOCKLAB                        0           /* set to 1 to run on FlockLab */
+#define FLOCKLAB                        1           /* set to 1 to run on FlockLab */
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
 #define FLOCKLAB_SWD                    0           /* set to 1 to reserve SWDIO / SWDCLK pins for debugging (GPIOs not available for tracing) */
 #define SWO_ENABLE                      0           /* set to 1 to enable data tracing or serial printing via SWO pin */
@@ -53,12 +53,12 @@
 #define TIMESTAMP_MAX_OFFSET_MS         10    /* max. allowed offset in ms that the host tries to compensate; if larger, a jump in time occurs. set to 0 to always make a jump */
 
 /* data collection config */
-#define NODE_HEALTH_MSG_PERIOD          300   /* in seconds */
+#define NODE_HEALTH_MSG_PERIOD          15   /* in seconds */
 
 /* memory */
 #define PRE_TASK_STACK_SIZE             256                             /* in # words of 4 bytes */
-#define COM_TASK_STACK_SIZE             512                             /* in # words of 4 bytes */
-#define POST_TASK_STACK_SIZE            512                             /* in # words of 4 bytes */
+#define COM_TASK_STACK_SIZE             300                             /* in # words of 4 bytes */
+#define POST_TASK_STACK_SIZE            300                             /* in # words of 4 bytes */
 #define STACK_WARNING_THRESHOLD         80                              /* a warning will be generated once the stack usage of a task exceeds this value (in percent) */
 #define TRANSMIT_QUEUE_SIZE             20                              /* #messages */
 #define RECEIVE_QUEUE_SIZE              ELWB_CONF_MAX_DATA_SLOTS        /* #messages */
@@ -95,12 +95,15 @@
 #define ELWB_CONF_SCHED_PERIOD_MIN      5
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_CONF_DATA_ACK              1
-#define ELWB_CONF_MAX_NODES             30
+#define ELWB_CONF_MAX_NODES             20
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_IS_HOST()                  IS_HOST
 #define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 20)      /* 50ms */
-//#define ELWB_CONF_SCHED_NODE_LIST       1, 3, 4, 5, 6    /* nodes to pre-register in the scheduler */
+#define ELWB_COLLECT_STATS(initiator)   collect_radio_stats(initiator)
+#define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13    /* nodes to pre-register in the scheduler, also include HOST_ID here! */
+/* function prototype needed by eLWB for data collection */
+void collect_radio_stats(uint16_t initiator_id);
 
 /* baseboard */
 #if BASEBOARD

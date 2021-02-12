@@ -7,7 +7,7 @@
 
 XMLFILE=flocklab_dpp2lora_elwb.xml
 IMGFILE="Debug/comboard_elwb.elf"
-OBSIDS=""
+OBSIDS=$(sed -nE 's/^#define ELWB_CONF_SCHED_NODE_LIST\s*([0-9, ]+).*/\1/p' Inc/app_config.h | sed s/,//g)
 SEDCMD=sed
 B64CMD=base64
 FLTOOLS=flocklab
