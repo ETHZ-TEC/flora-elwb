@@ -24,7 +24,7 @@ void listen_timeout(void)
 }
 
 
-void collect_radio_stats(uint16_t initiator_id)
+void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase)
 {
   /* collect data */
   uint8_t  rx_cnt     = gloria_get_rx_cnt();
@@ -32,30 +32,32 @@ void collect_radio_stats(uint16_t initiator_id)
   uint8_t  rx_started = gloria_get_rx_started_cnt();
   int8_t   snr        = gloria_get_snr();
   int16_t  rssi       = gloria_get_rssi();
-  uint64_t timestamp  = 0;
+  uint64_t network_time  = 0;
   uint64_t t_ref      = 0;
   if (gloria_is_t_ref_updated()) {
-    elwb_get_last_syncpoint(&timestamp, &t_ref);
+    elwb_get_last_syncpoint(&network_time, &t_ref);
   }
 
   /* print in json format */
   LOG_INFO("{"
            "\"initiator\":%d,"
+           "\"elwb_phase\":%d,"
            "\"rx_cnt\":%d,"
            "\"rx_idx\":%d,"
-           "\"rx_started:\":%d,"
-           "\"rssi:\":%d,"
-           "\"snr:\":%d,"
-           "\"timestamp\":%llu,"
+           "\"rx_started\":%d,"
+           "\"rssi\":%d,"
+           "\"snr\":%d,"
+           "\"network_time\":%llu,"
            "\"t_ref\":%llu"
            "}",
     initiator_id,
+    elwb_phase,
     rx_cnt,
     rx_idx,
     rx_started,
     rssi,
     snr,
-    timestamp,
+    network_time,
     t_ref);
 }
 
@@ -101,4 +103,3 @@ void vTask_com(void const * argument)
     LOG_INFO("com task executed");
   }
 }
-

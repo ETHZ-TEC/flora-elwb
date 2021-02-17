@@ -22,3 +22,6 @@ Inc/gitrev.h
 
 # flocklab templates
 *.xml
+
+# data
+data

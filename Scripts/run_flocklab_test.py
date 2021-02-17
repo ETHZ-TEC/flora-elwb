@@ -8,6 +8,9 @@
 import re
 import os
 import datetime
+from elftools.elf.elffile import ELFFile
+import json
+import git
 
 from flocklab import Flocklab
 from flocklab import *
@@ -17,38 +20,81 @@ fl = Flocklab()
 
 ###############################################################################
 # FL2
-obsNormal = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-# obsNormal = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 17, 25]
+obsNormal = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
 obsHg = []
 
+DURATION = 70
 imageNormalId = 'imageNormal'
 imageHgId = 'imageHg'
-imagePath = 'Debug/comboard_elwb.elf'
 cwd = os.path.dirname(os.path.realpath(__file__))
+imagePath = os.path.join(cwd, '../Debug/comboard_elwb.elf')
 xmlPath = os.path.join(cwd, 'flocklab_dpp2lora_elwb.xml')
 obsList = obsNormal + obsHg
 
 ###############################################################################
 
-def readConfig(symbol, configFile='Inc/app_config.h'):
+def readConfig(symbol, configFile='../Inc/app_config.h', idx=0):
     with open(os.path.join(cwd, configFile), 'r') as f:
         text = f.read()
 
-    ret = re.search(r'#define\s+({})\s+(.+?)\s'.format(symbol), text)
-    return ret.groups(0)[1]
+    # ret = re.search(r'#define\s+({})\s+(.+?)\s'.format(symbol), text)
+    ret = re.findall(r'#define\s+({})\s+(.+?)\s'.format(symbol), text)
+    if len(ret) == 0:
+        raise Exception('ERROR: readConfig: element "{}" not found'.format(symbol))
+    if idx >= len(ret):
+        raise Exception('ERROR: readConfig: idx ({}) out of range'.format(idx))
+    ret = ret[idx][1]
+    if len(ret) >= 2 and ret[0] == '"' and ret[-1] == '"':
+        ret = ret[1:-1]
+    if ret.isnumeric():
+        ret = int(ret)
+    return ret
+
+def get_globalvar_addr(varname, filename='../Debug/comboard_elwb.elf'):
+    with open(os.path.join(cwd, filename), 'rb') as f:
+        elffile = ELFFile(f)
+        symtab = elffile.get_section_by_name('.symtab')
+        sym = symtab.get_symbol_by_name(varname)
+
+        if sym is None or len(sym) == 0:
+            return None
+        elif len(sym) > 1:
+            print('WARNNG: multiple entries found!')
+        return sym[0]['st_value']
+
+def check_globalvar_exists(dataTraceConfList):
+    for elem in dataTraceConfList:
+        var = elem[0]
+        if not var[0:2] == '0x': # ignore variables directly specified by an address
+            if get_globalvar_addr(var) is None:
+                raise Exception('ERROR: datatrace variable "{}" is not contained in binary image!'.format(var))
+
+################################################################################
+# Test creation
+################################################################################
 
 def create_test():
-    FLOCKLAB = int(readConfig('FLOCKLAB'))
-    FLOCKLAB_SWD = int(readConfig('FLOCKLAB_SWD'))
-    SWO_ENABLE = int(readConfig('SWO_ENABLE'))
-    if FLOCKLAB != 1:
+    # read info from config/header files
+    custom = dict()
+    for var in ['FLOCKLAB', 'HOST_ID', 'FLOCKLAB_SWD', 'SWO_ENABLE']:
+        custom[var] = readConfig(var)
+    for var in ['GIT_REV', 'BUILD_TIME']:
+        custom[var] = readConfig(var, configFile='../Inc/gitrev.h')
+    custom['git_hashes'] = {
+        'comboard_elwb': git.Repo(os.path.join(cwd, '..')).head.object.hexsha,
+        'flora-lib': git.Repo(os.path.join(cwd, '../Lib')).head.object.hexsha,
+        'dpp': git.Repo(os.path.join(cwd, '../Lib/dpp')).head.object.hexsha,
+    }
+
+    # sanity check
+    if custom['FLOCKLAB'] != 1:
         raise Exception('FLOCKLAB not set to 1 in "app_config.h"!')
 
     fc = FlocklabXmlConfig()
-    fc.generalConf.name = 'eLWB Test'
+    fc.generalConf.name = 'eLWB data collection'
     fc.generalConf.description = ''
     # fc.generalConf.startTime = datetime.datetime(2020, 4, 28, 8, 0)
-    fc.generalConf.duration = 1.5*60
+    fc.generalConf.duration = DURATION
 
     if obsNormal:
         targetNormal = TargetConf()
@@ -65,18 +111,18 @@ def create_test():
     serial = SerialConf()
     serial.obsIds = obsNormal + obsHg
     serial.port = 'serial'
-    serial.baudrate = '1000000'
-    serial.remoteIp = '0.0.0.0'
+    serial.baudrate = '460800'
+    # serial.remoteIp = '0.0.0.0'
     fc.configList.append(serial)
 
     gpioTracingConf = GpioTracingConf()
     gpioTracingConf.obsIds = obsList
-    if FLOCKLAB_SWD and SWO_ENABLE:
-        gpioTracingConf.pinList = ['INT1', 'LED1']
-    elif FLOCKLAB_SWD:
-        gpioTracingConf.pinList = ['INT1', 'LED1', 'LED2']
-    else:
-        gpioTracingConf.pinList = ['INT1', 'INT2', 'LED1', 'LED2', 'LED3']
+    pinList = set(['INT1', 'INT2', 'LED1', 'LED2', 'LED3'])
+    if custom['FLOCKLAB_SWD']:
+        pinList = pinList.difference(set(['INT2', 'LED3']))
+    if custom['SWO_ENABLE']:
+        pinList = pinList.difference(set(['LED2']))
+    gpioTracingConf.pinList = sorted(list(pinList))
     fc.configList.append(gpioTracingConf)
 
     # gpioActuation = GpioActuationConf()
@@ -103,10 +149,12 @@ def create_test():
     # debugConf.cpuSpeed = 48000000
     # # debugConf.gdbPort = '2331'
     # debugConf.dataTraceConfList = [
-    #     ('0x20006860', 'RW PC'), # xStaticQueue_tx.dummy1 (current length of tx queue)
+    #     # ('0x20006860', 'RW PC'), # xStaticQueue_tx.dummy1 (current length of tx queue)
+    #     # ('health_msg_period', 'RW'),
     #     # ('dummy1', 'W PC'),
     #     # ('dummy2', 'R PC'),
     #     # ('dummy3', 'RW PC'),
+    #     ('sched_state', 'W', 4),
     # ]
     # fc.configList.append(debugConf)
 
@@ -128,7 +176,7 @@ def create_test():
         imageHg.imagePath = ''
         fc.configList.append(imageHg)
 
-
+    fc.generalConf.custom = json.dumps(custom, separators=(',', ':'))
     fc.generateXml(xmlPath=xmlPath)
 
 def run_test():

@@ -100,10 +100,10 @@
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_IS_HOST()                  IS_HOST
 #define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 20)      /* 50ms */
-#define ELWB_COLLECT_STATS(initiator)   collect_radio_stats(initiator)
+#define ELWB_COLLECT_STATS(initiator_id, elwb_phase)   collect_radio_stats(initiator_id, elwb_phase)
 #define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13    /* nodes to pre-register in the scheduler, also include HOST_ID here! */
 /* function prototype needed by eLWB for data collection */
-void collect_radio_stats(uint16_t initiator_id);
+// void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase);
 
 /* baseboard */
 #if BASEBOARD
@@ -118,13 +118,14 @@ void collect_radio_stats(uint16_t initiator_id);
 #define LPTIMER_RESET_WDG_ON_OVF        0
 #define LPTIMER_RESET_WDG_ON_EXP        1
 #define LPTIMER_CHECK_EXP_TIME          1
-#define UART_FIFO_BUFFER_SIZE           1     /* not used */
 #define BOLT_ENABLE                     (!FLOCKLAB) /* BOLT is not available on FlockLab */
 #define CLI_ENABLE                      0           /* command line interface */
 
 /* logging */
 #define LOG_ENABLE                      1
 #define LOG_LEVEL                       LOG_LEVEL_VERBOSE
+#define LOG_USE_DMA                     0
+#define UART_FIFO_BUFFER_SIZE           1 // 4096
 #if BASEBOARD
   #define LOG_ADD_TIMESTAMP             0       /* don't print the timestamp on the baseboard */
   #define LOG_USE_COLORS                0
@@ -146,8 +147,8 @@ void collect_radio_stats(uint16_t initiator_id);
 /* debugging */
 #if !BASEBOARD
   #if FLOCKLAB
-    #define ISR_ON_IND()                PIN_SET(FLOCKLAB_INT1)    // if unused, insert 2x NOP here
-    #define ISR_OFF_IND()               PIN_CLR(FLOCKLAB_INT1)
+    // #define ISR_ON_IND()                PIN_SET(FLOCKLAB_INT1)    // if unused, insert 2x NOP here
+    // #define ISR_OFF_IND()               PIN_CLR(FLOCKLAB_INT1)
     #define ELWB_RESUMED()              //PIN_SET(FLOCKLAB_INT2)
     #define ELWB_SUSPENDED()            //PIN_CLR(FLOCKLAB_INT2)
     #define POST_TASK_RESUMED()         //PIN_SET(FLOCKLAB_INT2)
