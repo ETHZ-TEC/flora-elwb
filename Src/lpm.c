@@ -124,6 +124,9 @@ void lpm_prepare(void)
       /* make sure the radio is in sleep mode */
       radio_sleep(!LPM_RADIO_COLD_SLEEP);
 
+      /* before continuing, wait for the UART transmission to complete */
+      uart_wait_tx_complete(10);   // 10ms timeout
+
       /* notes on stop mode:
       * - SRAM1, SRAM2 and all registers content are retained
       * - all clocks in the VCORE domain are stopped, the PLL, the MSI, the HSI16 and the HSE are disabled

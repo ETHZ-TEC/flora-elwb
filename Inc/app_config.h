@@ -57,7 +57,7 @@
 
 /* memory */
 #define PRE_TASK_STACK_SIZE             256                             /* in # words of 4 bytes */
-#define COM_TASK_STACK_SIZE             300                             /* in # words of 4 bytes */
+#define COM_TASK_STACK_SIZE             400                             /* in # words of 4 bytes */
 #define POST_TASK_STACK_SIZE            300                             /* in # words of 4 bytes */
 #define STACK_WARNING_THRESHOLD         80                              /* a warning will be generated once the stack usage of a task exceeds this value (in percent) */
 #define TRANSMIT_QUEUE_SIZE             20                              /* #messages */
@@ -121,7 +121,7 @@
 /* logging */
 #define LOG_ENABLE                      1
 #define LOG_LEVEL                       LOG_LEVEL_VERBOSE
-#define LOG_USE_DMA                     0
+#define LOG_USE_DMA                     1
 #if BASEBOARD
   #define LOG_ADD_TIMESTAMP             0       /* don't print the timestamp on the baseboard */
   #define LOG_USE_COLORS                0
