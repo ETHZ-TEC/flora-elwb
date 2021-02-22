@@ -100,7 +100,6 @@
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 20)      /* 50ms */
 #define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 11    /* nodes to pre-register in the scheduler, also include HOST_ID here! */
-/* function prototype needed by eLWB for data collection */
 
 /* baseboard */
 #if BASEBOARD

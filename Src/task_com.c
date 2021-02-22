@@ -36,9 +36,9 @@ void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_p
     uint64_t t_ref         = 0;
 
     if (rx_cnt > 0 && ELWB_IS_PKT_HEADER_VALID(packet)) {
-      rx_idx     = gloria_get_rx_index();
-      snr          = gloria_get_snr();
-      rssi         = gloria_get_rssi();
+      rx_idx  = gloria_get_rx_index();
+      snr     = gloria_get_snr();
+      rssi    = gloria_get_rssi();
       if (gloria_is_t_ref_updated()) {
         elwb_get_last_syncpoint(&network_time, &t_ref);
       }

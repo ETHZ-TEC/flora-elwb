@@ -84,7 +84,7 @@ def extractData(testNo, testDir=os.getcwd()):
     for dfdDict in dfdList:
         dataDict = dfdDict['data']
         for k,v in dataDict.items():
-            k = 'network_time' if k == 'timestamp' else k # workaround for first format (with overlapping column names)
+            # k = 'network_time' if k == 'timestamp' else k # workaround for first format (with overlapping column names), not needed anymore since renamed in elwb code
             dfdDict[k] = v
         dfdListNew.append(dfdDict)
     dfdNew = pd.DataFrame(dfdListNew)
@@ -190,7 +190,10 @@ if __name__ == "__main__":
 
     # testNoList = [2917]
     # testNoList = [2921]
-    testNoList = [2930]
+    # testNoList = [2930]
+    # testNoList = [3031]
+    # testNoList = [3036]
+    testNoList = [3042]
 
     # extract data for all tests
     for testNo in testNoList:
