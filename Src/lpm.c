@@ -105,7 +105,7 @@ void update_opmode(op_mode_event_t evt)
 }
 
 
-/* prepare the MCU for low power mode */
+/* prepare the MCU for low power mode (note: interrupts are disabled during this function call) */
 void lpm_prepare(void)
 {
 #if configUSE_TICKLESS_IDLE
@@ -123,9 +123,6 @@ void lpm_prepare(void)
     else if (LOW_POWER_MODE >= LP_MODE_STOP2) {
       /* make sure the radio is in sleep mode */
       radio_sleep(!LPM_RADIO_COLD_SLEEP);
-
-      /* before continuing, wait for the UART transmission to complete */
-      uart_wait_tx_complete(10);   // 10ms timeout
 
       /* notes on stop mode:
       * - SRAM1, SRAM2 and all registers content are retained
@@ -242,6 +239,7 @@ void lpm_prepare(void)
 }
 
 
+/* resume from low-power mode (note: interrupts are disabled during this function call) */
 void lpm_resume(void)
 {
   if (op_mode == OP_MODE_WOKEN) {

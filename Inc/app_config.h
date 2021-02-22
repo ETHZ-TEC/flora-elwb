@@ -99,7 +99,7 @@
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 20)      /* 50ms */
-#define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13    /* nodes to pre-register in the scheduler, also include HOST_ID here! */
+#define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 11    /* nodes to pre-register in the scheduler, also include HOST_ID here! */
 /* function prototype needed by eLWB for data collection */
 
 /* baseboard */
@@ -122,6 +122,10 @@
 #define LOG_ENABLE                      1
 #define LOG_LEVEL                       LOG_LEVEL_VERBOSE
 #define LOG_USE_DMA                     1
+#define LOG_BUFFER_SIZE                 4096
+#if LOG_USE_DMA
+  #define UART_FIFO_BUFFER_SIZE         LOG_BUFFER_SIZE
+#endif /* LOG_USE_DMA */
 #if BASEBOARD
   #define LOG_ADD_TIMESTAMP             0       /* don't print the timestamp on the baseboard */
   #define LOG_USE_COLORS                0
@@ -144,6 +148,8 @@
   #if FLOCKLAB
     #define ISR_ON_IND()                bool nested = PIN_STATE(FLOCKLAB_INT1); (void)nested; PIN_SET(FLOCKLAB_INT1)    /* if unused, insert 2x NOP here */
     #define ISR_OFF_IND()               if (!nested) PIN_CLR(FLOCKLAB_INT1)
+    #define CPU_ON_IND()                //PIN_SET(FLOCKLAB_INT2)
+    #define CPU_OFF_IND()               //PIN_CLR(FLOCKLAB_INT2)
     #define ELWB_RESUMED()              //PIN_SET(FLOCKLAB_INT2)
     #define ELWB_SUSPENDED()            //PIN_CLR(FLOCKLAB_INT2)
     #define POST_TASK_RESUMED()         //PIN_SET(FLOCKLAB_INT2)

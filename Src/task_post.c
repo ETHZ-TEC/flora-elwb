@@ -171,6 +171,11 @@ void vTask_post(void const * argument)
     log_flush();
 #endif /* LOG_PRINT_IMMEDIATELY */
 
+    /* before telling the state machine to enter low-power mode, wait for the UART transmission to complete (must be done here, NOT in lpm_prepare) */
+#if LOG_USE_DMA
+    uart_wait_tx_complete(100);     // 100ms timeout
+#endif /* LOG_USE_DMA */
+
     /* round finished, prepare for low-power mode */
     update_opmode(OP_MODE_EVT_DONE);
   }

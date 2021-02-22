@@ -26,18 +26,22 @@ void listen_timeout(void)
 
 void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_packet_t* packet)
 {
-  if (ELWB_IS_PKT_HEADER_VALID(packet) && initiator_id != NODE_ID) {
-
-    /* collect data */
-    uint8_t  rx_cnt     = gloria_get_rx_cnt();
-    uint8_t  rx_idx     = gloria_get_rx_index();
-    uint8_t  rx_started = gloria_get_rx_started_cnt();
-    int8_t   snr        = gloria_get_snr();
-    int16_t  rssi       = gloria_get_rssi();
+  if (initiator_id != NODE_ID) {
+    uint8_t  rx_cnt        = gloria_get_rx_cnt();
+    uint8_t  rx_started    = gloria_get_rx_started_cnt();
+    uint8_t  rx_idx        = 0;
+    int8_t   snr           = 0;
+    int16_t  rssi          = 0;
     uint64_t network_time  = 0;
-    uint64_t t_ref      = 0;
-    if (gloria_is_t_ref_updated()) {
-      elwb_get_last_syncpoint(&network_time, &t_ref);
+    uint64_t t_ref         = 0;
+
+    if (rx_cnt > 0 && ELWB_IS_PKT_HEADER_VALID(packet)) {
+      rx_idx     = gloria_get_rx_index();
+      snr          = gloria_get_snr();
+      rssi         = gloria_get_rssi();
+      if (gloria_is_t_ref_updated()) {
+        elwb_get_last_syncpoint(&network_time, &t_ref);
+      }
     }
 
     /* print in json format */
