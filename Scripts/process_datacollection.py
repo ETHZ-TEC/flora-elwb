@@ -14,6 +14,8 @@ import pandas as pd
 import json
 from collections import OrderedDict
 import pickle
+import re
+import hashlib
 
 from flocklab import Flocklab
 from flocklab import *
@@ -25,8 +27,12 @@ fl = Flocklab()
 ################################################################################
 TESTDIR = '/home/rtrueb/polybox/PhD/Projects/FlockLab2/flocklab_tests'
 
+FSK_MODULATIONS = [8, 9, 10]
 
 ################################################################################
+# Helper functions
+################################################################################
+
 def getJson(text):
     '''Find an convert json in a single line from serial output. Returns None if no valid json could be found.
     '''
@@ -46,16 +52,72 @@ def getJson(text):
         print('WARNING: json could not be parsed: {}'.format(text[idx:]))
     return ret
 
+
+def readTypedefEnum(typeName, filePath, replaceName=None):
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(cwd, filePath), 'r') as f:
+        text = f.read()
+
+    ret = re.findall(r'^\s*typedef\s+enum\s*{{([^}}]+)}}\s*{typeName};'.format(typeName=typeName), text, re.MULTILINE)
+    if len(ret) == 0:
+        raise Exception('ERROR: typeName "{}" not found'.format(symbol))
+    if len(ret) >= 2:
+        raise Exception('ERROR: typeName "{}" defined multiple times!'.format(symbol))
+    ret = ret[0].strip()
+    # remove comments
+    ret = re.sub(
+           r'(\s*//[^\n\r]*)',
+           '',
+           ret
+    )
+    # remove line breaks
+    ret = ret.replace('\n', '').replace('\r', '')
+    # convert to list
+    ret = [e.strip() for e in ret.split(',') if len(e)]
+    # split elements into name and idx
+    ret = [(e.split('=')[0], int(e.split('=')[1]) if len(e.split('=')) > 1 else None) for e in ret]
+    retFinal = {}
+    for e in ret:
+        name, idx = e
+        if not replaceName is None:
+            name = name.replace(*replaceName)
+        if not idx is None:
+            retFinal[idx] = name
+        else:
+            if len(retFinal) == 0:
+                retFinal[0] = name
+            else:
+                retFinal[list(retFinal.keys())[-1]+1] = name
+    return retFinal
+
+################################################################################
+# Extract data functions
 ################################################################################
 
-def extractData(testNo, testDir=os.getcwd()):
-    print('testNo: {}'.format(testNo))
-    serialPath = os.path.join(testDir, "{}/serial.csv".format(testNo))
+def extractData(testId, testDir=os.getcwd()):
+    df = extractSerialData(testId, testDir)
+    imageConfig = extractTestConfig(testId, testDir)
 
+    df['test_id'] = testId
+    df['tx_power'] = imageConfig['GLORIA_INTERFACE_POWER']
+    df['modulation'] = imageConfig['GLORIA_INTERFACE_MODULATION']
+    df['rf_band'] = imageConfig['GLORIA_INTERFACE_RF_BAND']
+    df['n_tx'] = imageConfig['ELWB_CONF_N_TX']
+    df['num_hops'] = imageConfig['ELWB_NUM_HOPS']
+
+    # invalidate snr values for FSK modulations
+    if imageConfig['GLORIA_INTERFACE_MODULATION'] in FSK_MODULATIONS:
+        df['snr'] = pd.NA
+    df = df.astype({'snr': 'Int64'}) # make sure that data type of snr column stays int even after setting missing values to nan
+
+    return df
+
+def extractSerialData(testId, testDir=os.getcwd()):
+    serialPath = os.path.join(testDir, "{}/serial.csv".format(testId))
 
     # # download test results if directory does not exist
     # if not os.path.isfile(serialPath):
-    #     fl.getResults(testNo)
+    #     fl.getResults(testId)
 
     df = fl.serial2Df(serialPath, error='ignore')
     df.sort_values(by=['timestamp', 'observer_id'], inplace=True, ignore_index=True)
@@ -83,102 +145,46 @@ def extractData(testNo, testDir=os.getcwd()):
     dfdListNew = []
     for dfdDict in dfdList:
         dataDict = dfdDict['data']
+
+        # invalidate data based on rx_cnt and t_ref_updated
+        invalidateList = []
+        if dataDict['rx_cnt'] == 0:
+            invalidateList = ['rx_idx', 'snr', 'rssi', 'payload_len', 't_ref_updated', 'network_time', 't_ref']
+        elif 't_ref_updated' in dataDict and dataDict['t_ref_updated'] == 0:
+            invalidateList = ['network_time', 't_ref']
+        for k in invalidateList:
+            dataDict[k] = None
+
         for k,v in dataDict.items():
-            # k = 'network_time' if k == 'timestamp' else k # workaround for first format (with overlapping column names), not needed anymore since renamed in elwb code
             dfdDict[k] = v
         dfdListNew.append(dfdDict)
-    dfdNew = pd.DataFrame(dfdListNew)
+    # use Int for int data even if column contains nan -> use pandas 'Int64'
+    dfdNew = pd.DataFrame.from_dict(dfdListNew)
+    # FIXME: column data type should be passed to constructor not applied later with astype() but this does not seem to be supported yet...
+    intCols = ['rx_idx', 'snr', 'rssi', 'payload_len', 't_ref_updated', 'network_time', 't_ref']
+    dfdNew = dfdNew.astype(dict((col, 'Int64') for col in intCols))
 
     return dfdNew
 
-    # # prepare
-    # groups = dfd.groupby('observer_id')
-    # prrMatrix = np.empty( (numNodes, numNodes,) ) * np.nan       # packet reception ratio (PRR)
-    # crcErrorMatrix = np.empty( (numNodes, numNodes,) ) * np.nan  # ratio of packets with CRC error
-    # pathlossMatrix = np.empty( (numNodes, numNodes,) ) * np.nan  # path loss
-    #
-    # # Get TestConfig and RadioConfig & check for consistency
-    # testConfigDict = OrderedDict()
-    # radioConfigDict = OrderedDict()
-    # for node in nodeList:
-    #     testConfigFound = False
-    #     radioConfigFound = False
-    #     testConfigDict[node] = None
-    #     radioConfigDict[node] = None
-    #     gDf = groups.get_group(node)
-    #     for d in gDf.data.to_list():
-    #         if d['type'] == 'TestConfig':
-    #             testConfigDict[node] = d
-    #             testConfigFound = True
-    #         if d['type'] == 'RadioConfig':
-    #             radioConfigDict[node] = d
-    #             radioConfigFound = True
-    #         if testConfigFound and radioConfigFound:
-    #             break
-    #
-    # for node in nodeList:
-    #     assert testConfigDict[nodeList[0]] == testConfigDict[node]
-    #     assert radioConfigDict[nodeList[0]] == radioConfigDict[node]
-    #
-    # testConfig = testConfigDict[nodeList[0]]
-    # radioConfig = radioConfigDict[nodeList[0]]
-    #
-    # # Make sure that round boundaries do not overlap
-    # if not assertionOverride:
-    #     currentSlot = -1
-    #     for d in dfd.data.to_list():
-    #         if d['type'] == 'StartOfRound':
-    #             node = d['node']
-    #             # print('Start: {}'.format(node))
-    #             assert node >= currentSlot
-    #             if node > currentSlot:
-    #                 currentSlot = node
-    #         elif d['type'] == 'EndOfRound':
-    #             node = d['node']
-    #             # print('End: {}'.format(node))
-    #             assert node >= currentSlot
-    #
-    # # extract statistics (PRR, path loss, ...)
-    # # iterate over rounds
-    # for roundIdx, roundNo in enumerate(nodeList):
-    # # for roundNo in [nodeList[0]]:
-    #     # print('Round: {}'.format(roundNo))
-    #     txNode = roundNo
-    #     txNodeIdx = roundIdx
-    #     numTx = 0
-    #     numRxDict = OrderedDict()
-    #     numCrcErrorDict = OrderedDict()
-    #     rssiAvgDict = OrderedDict()
-    #     # iterate over nodes
-    #     for nodeIdx, node in enumerate(nodeList):
-    #         rows = getRows(roundNo, groups.get_group(node))
-    #         if node == txNode:
-    # #            print(node)
-    #             txDoneList = [elem for elem in rows if (elem['type']=='TxDone')]
-    #             numTx = len(txDoneList)
-    # #            print(numTx, testConfig['numTx'])
-    #             assert numTx == testConfig['numTx']
-    #         else:
-    #             rxDoneList = [elem for elem in rows if (elem['type']=='RxDone' and elem['key']==testConfig['key'] and elem['crc_error']==0)]
-    #             crcErrorList = [elem for elem in rows if (elem['type']=='RxDone' and elem['crc_error']==1)]
-    #             numRxDict[node] = len(rxDoneList)
-    #             numCrcErrorDict[node] = len(crcErrorList)
-    #             rssiAvgDict[node] = np.mean([elem['rssi'] for elem in rxDoneList]) if len(rxDoneList) else np.nan
-    #
-    # # save obtained data to file (including nodeList to resolve idx <-> node ID relations)
-    # pklPath = './data/linktest_data_{}.pkl'.format(testNo)
-    # os.makedirs(os.path.split(pklPath)[0], exist_ok=True)
-    # with open(pklPath, 'wb' ) as f:
-    #     d = {
-    #         'testConfig': testConfig,
-    #         'radioConfig': radioConfig,
-    #         'nodeList': nodeList,
-    #         'prrMatrix': prrMatrix,
-    #         'crcErrorMatrix': crcErrorMatrix,
-    #         'pathlossMatrix': pathlossMatrix,
-    #     }
-    #     pickle.dump(d, f)
 
+def extractTestConfig(testId, testDir=os.getcwd()):
+    customText = fl.get_custom_field(os.path.join(testDir, str(testId)))
+    try:
+        custom = json.loads(customText)
+    except Exception as e:
+        print('ERROR: Unable to read custom field: {}'.format(e))
+        sys.exit(1)
+
+    # INFO
+    print('=== imageConfig ===')
+    for k, v in custom['imageConfig'].items():
+        print(k, v)
+
+    return custom['imageConfig']
+
+################################################################################
+# Main
+################################################################################
 
 if __name__ == "__main__":
     # # check arguments
@@ -186,34 +192,75 @@ if __name__ == "__main__":
     #     print("no test number specified!")
     #     sys.exit(1)
     # # obtain list of tests
-    # testNoList = map(int, sys.argv[1:])
+    # testIdList = map(int, sys.argv[1:])
 
-    # testNoList = [2917]
-    # testNoList = [2921]
-    # testNoList = [2930]
-    # testNoList = [3031]
-    # testNoList = [3036]
-    testNoList = [3042]
+    # testIdList = [2917]
+    # testIdList = [2921]
+    # testIdList = [2930]
+    # testIdList = [3031]
+    # testIdList = [3036]
+    # testIdList = [3042]
+    # testIdList = [3047]
+    # testIdList = [3048]
+    # testIdList = [3048, 3077]
+    testIdList = [3081, 3082]
 
-    # extract data for all tests
-    for testNo in testNoList:
-        df = extractData(testNo, testDir=TESTDIR)
-        df.to_csv(
-            path_or_buf='./datacollection_{}.csv'.format(testNo),
-            columns=[
-                'timestamp',
-                'observer_id',
-                'node_id',
-                'initiator',
-                'elwb_phase',
-                'rx_cnt',
-                'rx_idx',
-                'rx_started',
-                'rssi',
-                'snr',
-                'network_time',
-                't_ref',
-            ],
-            index=False,
-            header=True,
-        )
+    # obtain map to map elwb_phase enum idx to name
+    elwbPhases = readTypedefEnum('elwb_phases_t', '../Lib/protocol/elwb/elwb.h', replaceName=('ELWB_PHASE_', ''))
+
+    # extract and store data for all tests
+    dfList = []
+    for testId in testIdList:
+        print('===== testId={} ====='.format(testId))
+        df = extractData(testId, testDir=TESTDIR)
+
+        # map elwb_phase enum idx to names
+        df['elwb_phase_mapped'] = df.elwb_phase.map(lambda x: elwbPhases[x])
+        df.drop('elwb_phase', axis='columns', inplace=True)
+        df.rename(columns={'elwb_phase_mapped': 'elwb_phase'}, inplace=True)
+
+        # reduce to 1 node ID (use observer ID sice node ID is not actively used but call it node ID)
+        df.drop('node_id', axis='columns', inplace=True)
+        df.rename(columns={'observer_id': 'node_id'}, inplace=True)
+
+        dfList.append(df)
+
+    dfAll = pd.concat(dfList)
+
+    # select columns to keep (with correct ordering)
+    columns = [
+        'test_id',     # src: testbed
+        'timestamp',
+        'node_id',
+        'tx_power',    # src: settings
+        'modulation',
+        'rf_band',
+        'n_tx',
+        'num_hops',
+        'initiator_id',   # src: node
+        'elwb_phase',
+        'rx_cnt',
+        'rx_idx',
+        'rx_started',
+        'rssi',
+        'snr',
+        'payload_len',
+        'network_time',
+        't_ref',
+    ]
+    dfDataset = dfAll[columns]
+
+    hexHash = hashlib.sha256(pd.util.hash_pandas_object(dfDataset, index=False).values).hexdigest()
+
+    print('===== hexHash =====')
+    print(hexHash)
+
+    # save data to file
+    dfDataset.to_csv(
+        path_or_buf='./data/flood_dataset_{}_{}.csv'.format(testIdList[-1], hexHash[:8]),
+        index=False,
+        header=True,
+    )
+    dfDataset.to_pickle(
+        path='./data/flood_dataset_{}_{}.zip'.format(testIdList[-1], hexHash[:8]),
+    )

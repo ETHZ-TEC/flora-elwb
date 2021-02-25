@@ -11,6 +11,7 @@ import datetime
 from elftools.elf.elffile import ELFFile
 import json
 import git
+from collections import OrderedDict
 
 from flocklab import Flocklab
 from flocklab import *
@@ -38,12 +39,17 @@ def readConfig(symbol, configFile='../Inc/app_config.h', idx=0):
         text = f.read()
 
     # ret = re.search(r'#define\s+({})\s+(.+?)\s'.format(symbol), text)
-    ret = re.findall(r'#define\s+({})\s+(.+?)\s'.format(symbol), text)
+    ret = re.findall(r'^\s*#define\s+({})\s+([^/\n\r]+)\s*'.format(symbol), text, re.MULTILINE)
     if len(ret) == 0:
         raise Exception('ERROR: readConfig: element "{}" not found'.format(symbol))
     if idx >= len(ret):
         raise Exception('ERROR: readConfig: idx ({}) out of range'.format(idx))
-    ret = ret[idx][1]
+    if idx is None:
+        if len(ret) >= 2:
+            raise Exception('ERROR: symbol "{}" defined multiple times!'.format(symbol))
+        else:
+            idx = 0
+    ret = ret[idx][1].strip()
     if len(ret) >= 2 and ret[0] == '"' and ret[-1] == '"':
         ret = ret[1:-1]
     if ret.isnumeric():
@@ -69,6 +75,28 @@ def check_globalvar_exists(dataTraceConfList):
             if get_globalvar_addr(var) is None:
                 raise Exception('ERROR: datatrace variable "{}" is not contained in binary image!'.format(var))
 
+def readAllConfig():
+    ret = OrderedDict()
+    ret['HOST_ID'] = readConfig('HOST_ID', idx=1)
+    ret['NODE_HEALTH_MSG_PERIOD'] = readConfig('NODE_HEALTH_MSG_PERIOD')
+    ret['GLORIA_INTERFACE_POWER'] = readConfig('GLORIA_INTERFACE_POWER')
+    ret['GLORIA_INTERFACE_MODULATION'] = readConfig('GLORIA_INTERFACE_MODULATION')
+    ret['GLORIA_INTERFACE_RF_BAND'] = readConfig('GLORIA_INTERFACE_RF_BAND')
+    ret['ELWB_CONF_N_TX'] = readConfig('ELWB_CONF_N_TX')
+    ret['ELWB_NUM_HOPS'] = readConfig('ELWB_NUM_HOPS')
+    ret['ELWB_CONF_SCHED_PERIOD_IDLE'] = readConfig('ELWB_CONF_SCHED_PERIOD_IDLE')
+    ret['ELWB_CONF_SCHED_PERIOD_MIN'] = readConfig('ELWB_CONF_SCHED_PERIOD_MIN')
+    ret['ELWB_CONF_SCHED_PERIOD_MAX'] = readConfig('ELWB_CONF_SCHED_PERIOD_MAX')
+    ret['ELWB_CONF_DATA_ACK'] = readConfig('ELWB_CONF_DATA_ACK')
+    ret['ELWB_CONF_MAX_NODES'] = readConfig('ELWB_CONF_MAX_NODES')
+    ret['ELWB_CONF_SCHED_NODE_LIST'] = [int(e) for e in readConfig('ELWB_CONF_SCHED_NODE_LIST').replace(',', '').split()]
+
+    # DEBUG
+    for k, v in ret.items():
+        print('{}: {}'.format(k, v))
+
+    return ret
+
 ################################################################################
 # Test creation
 ################################################################################
@@ -85,6 +113,8 @@ def create_test():
         'flora-lib': git.Repo(os.path.join(cwd, '../Lib')).head.object.hexsha,
         'dpp': git.Repo(os.path.join(cwd, '../Lib/dpp')).head.object.hexsha,
     }
+
+    custom['imageConfig'] = readAllConfig()
 
     # sanity check
     if custom['FLOCKLAB'] != 1:

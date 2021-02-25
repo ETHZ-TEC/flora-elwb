@@ -30,29 +30,35 @@ void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_p
     uint8_t  rx_cnt        = gloria_get_rx_cnt();
     uint8_t  rx_started    = gloria_get_rx_started_cnt();
     uint8_t  rx_idx        = 0;
-    int8_t   snr           = 0;
-    int16_t  rssi          = 0;
+    int8_t   snr           = -99;
+    int16_t  rssi          = -99;
+    uint8_t  payload_len   = 0;
+    uint8_t  t_ref_updated = 0;
     uint64_t network_time  = 0;
     uint64_t t_ref         = 0;
 
     if (rx_cnt > 0 && ELWB_IS_PKT_HEADER_VALID(packet)) {
-      rx_idx  = gloria_get_rx_index();
-      snr     = gloria_get_snr();
-      rssi    = gloria_get_rssi();
-      if (gloria_is_t_ref_updated()) {
+      rx_idx         = gloria_get_rx_index();
+      snr            = gloria_get_snr();
+      rssi           = gloria_get_rssi();
+      payload_len    = gloria_get_payload_len();
+      t_ref_updated  = gloria_is_t_ref_updated();
+      if (t_ref_updated) {
         elwb_get_last_syncpoint(&network_time, &t_ref);
       }
     }
 
     /* print in json format */
     LOG_INFO("{"
-             "\"initiator\":%d,"
+             "\"initiator_id\":%d,"
              "\"elwb_phase\":%d,"
              "\"rx_cnt\":%d,"
              "\"rx_idx\":%d,"
              "\"rx_started\":%d,"
              "\"rssi\":%d,"
              "\"snr\":%d,"
+             "\"payload_len\":%d,"
+             "\"t_ref_updated\":%llu,"
              "\"network_time\":%llu,"
              "\"t_ref\":%llu"
              "}",
@@ -63,8 +69,11 @@ void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_p
       rx_started,
       rssi,
       snr,
+      payload_len,
+      t_ref_updated,
       network_time,
-      t_ref);
+      t_ref
+    );
   }
 }
 
