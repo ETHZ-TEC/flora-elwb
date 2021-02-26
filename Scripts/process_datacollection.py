@@ -4,7 +4,7 @@
 Created on 20210216
 
 @author: romantrueb
-@brief:  Evaluate data collected by flooding using eLWB
+@brief:  Process data collected by flooding using eLWB
 """
 
 import sys
@@ -32,6 +32,15 @@ FSK_MODULATIONS = [8, 9, 10]
 ################################################################################
 # Helper functions
 ################################################################################
+
+def getDfHash(df):
+    '''Calculates a hash over all dataframe data values and the column labels, but not the index (aka row labels).
+    '''
+    colsBytes = ''.join(df.columns).encode('utf-8')
+    colsArray = np.array((int(hashlib.sha256(colsBytes).hexdigest()[:16], 16))).astype(np.uint64)
+    dfValuesArray = pd.util.hash_pandas_object(df, index=False).values
+    l = np.append(colsArray, dfValuesArray)
+    return hashlib.sha256(l).hexdigest()
 
 def getJson(text):
     '''Find an convert json in a single line from serial output. Returns None if no valid json could be found.
@@ -194,16 +203,9 @@ if __name__ == "__main__":
     # # obtain list of tests
     # testIdList = map(int, sys.argv[1:])
 
-    # testIdList = [2917]
-    # testIdList = [2921]
-    # testIdList = [2930]
-    # testIdList = [3031]
-    # testIdList = [3036]
-    # testIdList = [3042]
-    # testIdList = [3047]
-    # testIdList = [3048]
     # testIdList = [3048, 3077]
-    testIdList = [3081, 3082]
+    # testIdList = [3081, 3082]
+    testIdList = [3128, 3129, 3130]
 
     # obtain map to map elwb_phase enum idx to name
     elwbPhases = readTypedefEnum('elwb_phases_t', '../Lib/protocol/elwb/elwb.h', replaceName=('ELWB_PHASE_', ''))
@@ -250,17 +252,17 @@ if __name__ == "__main__":
     ]
     dfDataset = dfAll[columns]
 
-    hexHash = hashlib.sha256(pd.util.hash_pandas_object(dfDataset, index=False).values).hexdigest()
+    dfHash = getDfHash(dfDataset)
 
     print('===== hexHash =====')
-    print(hexHash)
+    print(dfHash)
 
     # save data to file
     dfDataset.to_csv(
-        path_or_buf='./data/flood_dataset_{}_{}.csv'.format(testIdList[-1], hexHash[:8]),
+        path_or_buf='./data/flood_dataset_{}_{}.csv'.format(max(testIdList), dfHash[:8]),
         index=False,
         header=True,
     )
     dfDataset.to_pickle(
-        path='./data/flood_dataset_{}_{}.zip'.format(testIdList[-1], hexHash[:8]),
+        path='./data/flood_dataset_{}_{}.zip'.format(max(testIdList), dfHash[:8]),
     )

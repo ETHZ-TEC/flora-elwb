@@ -53,7 +53,7 @@
 #define TIMESTAMP_MAX_OFFSET_MS         10    /* max. allowed offset in ms that the host tries to compensate; if larger, a jump in time occurs. set to 0 to always make a jump */
 
 /* data collection config */
-#define NODE_HEALTH_MSG_PERIOD          10   /* in seconds */
+#define NODE_HEALTH_MSG_PERIOD          15   /* in seconds */
 
 /* memory */
 #define PRE_TASK_STACK_SIZE             256                             /* in # words of 4 bytes */
@@ -69,7 +69,7 @@
 #define NVCFG_BLOCK_SIZE                16   /* note: must be sizeof(nv_config_t)! */
 
 /* Gloria config */
-#define GLORIA_INTERFACE_POWER           0   /* transmit power in dBm (max. value is 14 for most RF bands) */
+#define GLORIA_INTERFACE_POWER          14   /* transmit power in dBm (max. value is 14 for most RF bands) */
 #if FLOCKLAB
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
   #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options) */
@@ -91,7 +91,7 @@
 #define ELWB_CONF_T_DATA                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
 #define ELWB_CONF_T_CONT                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, 2)
 #define ELWB_CONF_T_GAP                 ELWB_MS_TO_TICKS(5)
-#define ELWB_CONF_SCHED_PERIOD_IDLE     10
+#define ELWB_CONF_SCHED_PERIOD_IDLE     15
 #define ELWB_CONF_SCHED_PERIOD_MIN      5
 #define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_CONF_DATA_ACK              1
@@ -99,7 +99,7 @@
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_CONF_T_PREPROCESS          (ELWB_TIMER_SECOND / 20)      /* 50ms */
-#define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 11    /* nodes to pre-register in the scheduler, also include HOST_ID here! */
+#define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32  /* nodes to pre-register in the scheduler, also include HOST_ID here! */
 
 /* baseboard */
 #if BASEBOARD
