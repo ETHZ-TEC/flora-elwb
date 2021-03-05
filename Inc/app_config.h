@@ -13,6 +13,10 @@
 #define __APP_CONFIG_H
 
 
+/* externs for binary patching */
+extern volatile uint16_t  host_id;
+
+
 /* --- adjustable parameters --- */
 
 /* general */
@@ -30,12 +34,12 @@
 #if BASEBOARD
   #define HOST_ID                       103         /* note: host ID is only used to determine whether a node is a host node (irrelevant for source nodes) */
 #else
-  #define HOST_ID                       2           /* note: host ID is only used to determine whether a node is a host node (irrelevant for source nodes) */
+  #define HOST_ID                       2           /* note: host ID is only used to determine whether a node is a host node (irrelevant for source nodes); config will be overwritten by binary patching! */
 #endif /* BASEBOARD */
 #if !FLOCKLAB
   #define NODE_ID                       HOST_ID
 #endif /* FLOCKLAB */
-#define IS_HOST                         (NODE_ID == HOST_ID)
+#define IS_HOST                         (NODE_ID == host_id)
 #define WRITE_NODE_ID                   0           /* 1 = force node ID overwrite, 0 = use ID stored in NV config if available */
 
 /* energy (low-power mode) */
@@ -69,24 +73,24 @@
 #define NVCFG_BLOCK_SIZE                16   /* note: must be sizeof(nv_config_t)! */
 
 /* Gloria config */
-#define GLORIA_INTERFACE_POWER          14   /* transmit power in dBm (max. value is 14 for most RF bands) */
+#define GLORIA_INTERFACE_POWER          1    /* transmit power in dBm (max. value is 14 for most RF bands); keep non-zero init for binary patching!; config will be overwritten by binary patching! */
 #if FLOCKLAB
-  #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
-  #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options) */
+  #define GLORIA_INTERFACE_MODULATION   7    /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
+  #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #elif BASEBOARD
   /* configuration for the deployment */
-  #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
-  #define GLORIA_INTERFACE_RF_BAND      43   /* 869.46 MHz (see table in radio_constants.c for options) */
+  #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
+  #define GLORIA_INTERFACE_RF_BAND      43   /* 869.46 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #else
-  #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details) */
-  #define GLORIA_INTERFACE_RF_BAND      48   /* 869.46 MHz (see table in radio_constants.c for options) */
+  #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
+  #define GLORIA_INTERFACE_RF_BAND      48   /* 869.46 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #endif /* FLOCKLAB */
 
 /* eLWB config */
 #define ELWB_ENABLE                     1
 #define ELWB_CONF_NETWORK_ID            0x3333
 #define ELWB_CONF_N_TX                  2    /* number of transmissions */
-#define ELWB_NUM_HOPS                   3    /* network diameter in number of hops */
+#define ELWB_NUM_HOPS                   6    /* network diameter in number of hops */
 #define ELWB_CONF_T_SCHED               GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
 #define ELWB_CONF_T_DATA                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
 #define ELWB_CONF_T_CONT                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, 2)
@@ -197,9 +201,9 @@
 #error "can't use target FLOCKLAB and BASEBOARD at the same time"
 #endif
 
-#if FLOCKLAB && (HOST_ID < 1 || HOST_ID > 25)
-#error "HOST_ID is invalid for target FLOCKLAB"
-#endif
+// #if FLOCKLAB && (HOST_ID < 1 || HOST_ID > 25)
+// #error "HOST_ID is invalid for target FLOCKLAB"
+// #endif
 
 #if BASEBOARD_TREQ_WATCHDOG > 0 && BASEBOARD_TREQ_WATCHDOG < 120
 #error "BASEBOARD_TREQ_WATCHDOG must be >= 120"

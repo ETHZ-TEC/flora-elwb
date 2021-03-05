@@ -8,10 +8,13 @@
 import re
 import os
 import datetime
+import shutil
 from elftools.elf.elffile import ELFFile
 import json
 import git
 from collections import OrderedDict
+
+import patchelf
 
 from flocklab import Flocklab
 from flocklab import *
@@ -29,6 +32,7 @@ imageNormalId = 'imageNormal'
 imageHgId = 'imageHg'
 cwd = os.path.dirname(os.path.realpath(__file__))
 imagePath = os.path.join(cwd, '../Debug/comboard_elwb.elf')
+imagePathPatched = os.path.join(cwd, '../Debug/comboard_elwb_patched.elf')
 xmlPath = os.path.join(cwd, 'flocklab_dpp2lora_elwb.xml')
 obsList = obsNormal + obsHg
 
@@ -65,7 +69,7 @@ def get_globalvar_addr(varname, filename='../Debug/comboard_elwb.elf'):
         if sym is None or len(sym) == 0:
             return None
         elif len(sym) > 1:
-            print('WARNNG: multiple entries found!')
+            print('WARNING: multiple entries found!')
         return sym[0]['st_value']
 
 def check_globalvar_exists(dataTraceConfList):
@@ -101,7 +105,7 @@ def readAllConfig():
 # Test creation
 ################################################################################
 
-def create_test():
+def create_test(imagePatchingDict=None):
     # read info from config/header files
     custom = dict()
     for var in ['FLOCKLAB', 'HOST_ID', 'FLOCKLAB_SWD', 'SWO_ENABLE']:
@@ -114,12 +118,24 @@ def create_test():
         'dpp': git.Repo(os.path.join(cwd, '../Lib/dpp')).head.object.hexsha,
     }
 
-    custom['imageConfig'] = readAllConfig()
-
     # sanity check
     if custom['FLOCKLAB'] != 1:
         raise Exception('FLOCKLAB not set to 1 in "app_config.h"!')
 
+    # read defines
+    config = readAllConfig()
+    custom['imagePatchingDict'] = config
+
+    # patch variables in binary image
+    if not imagePatchingDict is None:
+        shutil.copyfile(imagePath, imagePathPatched)
+        for k, v in imagePatchingDict.items():
+            print('{}: {}'.format(k, v))
+            signed = (k in ['gloria_power'])
+            patchelf.writeSymbolValue(elfPath=imagePathPatched, symbName=k, symbReplace=v, signed=signed)
+        custom['imagePatchingDict'] = imagePatchingDict
+
+    # construct flockab config
     fc = FlocklabXmlConfig()
     fc.generalConf.name = 'eLWB data collection'
     fc.generalConf.description = ''
@@ -194,7 +210,7 @@ def create_test():
         imageNormal.name = 'dummy_image_name'
         imageNormal.description = 'dummy image description'
         imageNormal.platform = 'dpp2lora'
-        imageNormal.imagePath = imagePath
+        imageNormal.imagePath = imagePath if (imagePatchingDict is None) else imagePathPatched
         fc.configList.append(imageNormal)
 
     if obsHg:
@@ -219,5 +235,13 @@ def run_test():
 
 
 if __name__ == "__main__":
-    create_test()
+    binaryPatchingDict = {
+        'host_id': 10,
+        'gloria_power': 7,
+        'gloria_modulation': 10,
+        # 'gloria_band': 2,
+    }
+
+    create_test(binaryPatchingDict)
+    # create_test() # without binary patching
     run_test()

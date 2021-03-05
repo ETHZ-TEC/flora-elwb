@@ -100,6 +100,7 @@ typedef struct
 /* USER CODE BEGIN EC */
 
 extern nv_config_t config;
+extern volatile uint16_t host_id; // for binary patching
 
 #if BOLT_ENABLE
 extern SPI_HandleTypeDef hspi1;

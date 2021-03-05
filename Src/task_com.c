@@ -17,6 +17,11 @@ extern QueueHandle_t xQueueHandle_rx;
 extern QueueHandle_t xQueueHandle_tx;
 extern QueueHandle_t xQueueHandle_retransmit;
 
+/* global variables for binary patching the config */
+volatile uint16_t         host_id = HOST_ID;
+static volatile int8_t    gloria_power = GLORIA_INTERFACE_POWER;
+static volatile uint8_t   gloria_modulation = GLORIA_INTERFACE_MODULATION;
+static volatile uint8_t   gloria_band = GLORIA_INTERFACE_RF_BAND;
 
 void listen_timeout(void)
 {
@@ -97,6 +102,34 @@ void vTask_com(void const * argument)
 
   /* make sure the radio is awake */
   radio_wakeup();
+
+  /* set config values */
+  gloria_set_tx_power(gloria_power);
+  gloria_set_modulation(gloria_modulation);
+  gloria_set_band(gloria_band);
+
+  /* print config in json format */
+  LOG_INFO("{"
+           "\"node_id\":%d,"
+           "\"host_id\":%d,"
+           "\"tx_power\":%d,"
+           "\"modulation\":%d,"
+           "\"rf_band\":%d,"
+           "\"n_tx\":%d,"
+           "\"num_hops\":%d,"
+           "\"elwb_pkt_len\":%d,"
+           "\"elwb_num_slots\":%d"
+           "}",
+    NODE_ID,
+    host_id,
+    gloria_power,
+    gloria_modulation,
+    gloria_band,
+    ELWB_CONF_N_TX,
+    ELWB_NUM_HOPS,
+    ELWB_CONF_MAX_PKT_LEN,
+    ELWB_CONF_MAX_DATA_SLOTS
+  );
 
   /* start eLWB */
   elwb_init(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, xQueueHandle_retransmit, listen_timeout);
