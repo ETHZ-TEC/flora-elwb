@@ -29,6 +29,24 @@ TESTDIR = '/home/rtrueb/polybox/PhD/Projects/FlockLab2/flocklab_tests'
 
 FSK_MODULATIONS = [8, 9, 10]
 
+imageConfigToMacro = {
+    'host_id': 'HOST_ID',
+    'tx_power': 'GLORIA_INTERFACE_POWER',
+    'modulation': 'GLORIA_INTERFACE_MODULATION',
+    'rf_band': 'GLORIA_INTERFACE_RF_BAND',
+    'n_tx': 'ELWB_CONF_N_TX',
+    'num_hops': 'ELWB_NUM_HOPS',
+}
+
+imageConfigToGlobalVar = {
+    'host_id': 'host_id',
+    'tx_power': 'gloria_power',
+    'modulation': 'gloria_modulation',
+    'rf_band': 'gloria_band',
+    'n_tx': 'elwb_n_tx',
+    'num_hops': 'elwb_num_hops',
+}
+
 ################################################################################
 # Helper functions
 ################################################################################
@@ -104,18 +122,15 @@ def readTypedefEnum(typeName, filePath, replaceName=None):
 ################################################################################
 
 def extractData(testId, testDir=os.getcwd()):
-    df = extractSerialData(testId, testDir)
-    imageConfig = extractTestConfig(testId, testDir)
+    df, imageConfigFromSerial = extractSerialData(testId, testDir)
+    imageConfig = extractImageConfig(testId, testDir, imageConfigFromSerial)
 
     df['test_id'] = testId
-    df['tx_power'] = imageConfig['GLORIA_INTERFACE_POWER']
-    df['modulation'] = imageConfig['GLORIA_INTERFACE_MODULATION']
-    df['rf_band'] = imageConfig['GLORIA_INTERFACE_RF_BAND']
-    df['n_tx'] = imageConfig['ELWB_CONF_N_TX']
-    df['num_hops'] = imageConfig['ELWB_NUM_HOPS']
+    for k, v in imageConfig.items():
+        df[k] = v
 
     # invalidate snr values for FSK modulations
-    if imageConfig['GLORIA_INTERFACE_MODULATION'] in FSK_MODULATIONS:
+    if imageConfig['modulation'] in FSK_MODULATIONS:
         df['snr'] = pd.NA
     df = df.astype({'snr': 'Int64'}) # make sure that data type of snr column stays int even after setting missing values to nan
 
@@ -149,11 +164,19 @@ def extractSerialData(testId, testDir=os.getcwd()):
     print('nodeList: {}'.format(nodeList))
     print('numNodes: {}'.format(numNodes))
 
+    # split dfd based on the two types of json objects (imageConfig vs floodRx)
+    imageConfigDf = dfd[['node_id' in e.keys() for e in dfd.data]]
+    floodRxDf = dfd[['rx_cnt' in e.keys() for e in dfd.data]]
+    # sanity checks
+    assert len(imageConfigDf) + len(floodRxDf) == len(dfd)
+    for idx, row in imageConfigDf.iterrows():
+        assert row['observer_id'] == row['data']['node_id']
+
     # add values from data dict to main table (i.e. create flat table)
-    dfdList = dfd.to_dict('records')
-    dfdListNew = []
-    for dfdDict in dfdList:
-        dataDict = dfdDict['data']
+    floodRxDfList = floodRxDf.to_dict('records')
+    floodRxDfListNew = []
+    for floodRxDfDict in floodRxDfList:
+        dataDict = floodRxDfDict['data']
 
         # invalidate data based on rx_cnt and t_ref_updated
         invalidateList = []
@@ -165,31 +188,53 @@ def extractSerialData(testId, testDir=os.getcwd()):
             dataDict[k] = None
 
         for k,v in dataDict.items():
-            dfdDict[k] = v
-        dfdListNew.append(dfdDict)
+            floodRxDfDict[k] = v
+        floodRxDfListNew.append(floodRxDfDict)
     # use Int for int data even if column contains nan -> use pandas 'Int64'
-    dfdNew = pd.DataFrame.from_dict(dfdListNew)
+    floodRxDfNew = pd.DataFrame.from_dict(floodRxDfListNew)
     # FIXME: column data type should be passed to constructor not applied later with astype() but this does not seem to be supported yet...
     intCols = ['rx_idx', 'snr', 'rssi', 'payload_len', 't_ref_updated', 'network_time', 't_ref']
-    dfdNew = dfdNew.astype(dict((col, 'Int64') for col in intCols))
+    floodRxDfNew = floodRxDfNew.astype(dict((col, 'Int64') for col in intCols))
 
-    return dfdNew
+    return floodRxDfNew, imageConfigDf.data.tolist()
 
 
-def extractTestConfig(testId, testDir=os.getcwd()):
-    customText = fl.get_custom_field(os.path.join(testDir, str(testId)))
-    try:
-        custom = json.loads(customText)
-    except Exception as e:
-        print('ERROR: Unable to read custom field: {}'.format(e))
-        sys.exit(1)
+def extractImageConfig(testId, testDir=os.getcwd(), imageConfigFromSerial=[]):
+    imageConfig = {}
+    if not imageConfigFromSerial:
+        print('Reading imageConfig from custom field of testconfig xml...')
+        ## old way to pass imageConfig (via custom field of xml test config); for backwards compatibility
+        customText = fl.get_custom_field(os.path.join(testDir, str(testId)))
+        try:
+            custom = json.loads(customText)
+        except Exception as e:
+            raise Exception('ERROR: Unable to read custom field: {}'.format(e))
 
-    # INFO
+        configMacros = custom['imageConfig'] if 'imageConfig' in custom else None
+        imagePatchingDict = custom['imagePatchingDict'] if 'imagePatchingDict' in custom else None
+
+        for imageConfigName in imageConfigToMacro.keys():
+            if imagePatchingDict and (imageConfigToGlobalVar[imageConfigName] in imagePatchingDict):
+                imageConfig[imageConfigName] = imagePatchingDict[imageConfigToGlobalVar[imageConfigName]]
+            else:
+                imageConfig[imageConfigName] = configMacros[imageConfigToMacro[imageConfigName]]
+    else:
+        ## new way to pass image Config (via json output in serial)
+        print('Reading imageConfig from serial...')
+        # copy values from first list element (and ignore not needed values)
+        for imageConfigName in imageConfigToGlobalVar.keys():
+            imageConfig[imageConfigName] = imageConfigFromSerial[0][imageConfigName]
+        # sanity check: ensure first list element is equal to all other list elements
+        for d in imageConfigFromSerial:
+            for k in imageConfigToGlobalVar.keys():
+                assert d[k] == imageConfig[k]
+
+    # Print debug info
     print('=== imageConfig ===')
-    for k, v in custom['imageConfig'].items():
-        print(k, v)
+    for imageConfigName, val in imageConfig.items():
+        print('{}={}'.format(imageConfigName, val))
 
-    return custom['imageConfig']
+    return imageConfig
 
 ################################################################################
 # Main
@@ -205,7 +250,9 @@ if __name__ == "__main__":
 
     # testIdList = [3048, 3077]
     # testIdList = [3081, 3082]
-    testIdList = [3128, 3129, 3130]
+    # testIdList = [3128, 3129, 3130]
+    # testIdList = [3559]
+    testIdList = [3560, 3561, 3562]
 
     # obtain map to map elwb_phase enum idx to name
     elwbPhases = readTypedefEnum('elwb_phases_t', '../Lib/protocol/elwb/elwb.h', replaceName=('ELWB_PHASE_', ''))
@@ -231,10 +278,11 @@ if __name__ == "__main__":
 
     # select columns to keep (with correct ordering)
     columns = [
-        'test_id',     # src: testbed
+        'test_id',        # src: testbed
         'timestamp',
         'node_id',
-        'tx_power',    # src: settings
+        'host_id',        # src: settings
+        'tx_power',
         'modulation',
         'rf_band',
         'n_tx',

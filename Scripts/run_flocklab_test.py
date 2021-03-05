@@ -12,6 +12,7 @@ import shutil
 from elftools.elf.elffile import ELFFile
 import json
 import git
+import itertools
 from collections import OrderedDict
 
 import patchelf
@@ -106,6 +107,8 @@ def readAllConfig():
 ################################################################################
 
 def create_test(imagePatchingDict=None):
+    print('===== Create Test =====')
+
     # read info from config/header files
     custom = dict()
     for var in ['FLOCKLAB', 'HOST_ID', 'FLOCKLAB_SWD', 'SWO_ENABLE']:
@@ -124,7 +127,7 @@ def create_test(imagePatchingDict=None):
 
     # read defines
     config = readAllConfig()
-    custom['imagePatchingDict'] = config
+    custom['imageConfig'] = config
 
     # patch variables in binary image
     if not imagePatchingDict is None:
@@ -231,19 +234,29 @@ def run_test():
     if inp == 'y':
         print(fl.createTestWithInfo(xmlPath))
     else:
-        print('Test NOT submitted!')
+        print('=====> Test NOT submitted!')
 
 
 if __name__ == "__main__":
-    binaryPatchingDict = {
-        'host_id': 3,
-        'gloria_power': 0,
-        'gloria_modulation': 10,
-        # 'gloria_band': 2,
-        'elwb_n_tx': 3,
-        'elwb_num_hops': 8,
-    }
+    # hostIdList = [2, 3, 10, 25]
+    # pwrList = [-9, 0, 9, 14]
+    # modulationList = [1, 5, 7, 8, 10]
 
-    create_test(binaryPatchingDict)
-    # create_test() # without binary patching
-    run_test()
+    hostIdList = [2]
+    pwrList = [0] # [-9, 0, 9]
+    modulationList = [10]
+
+    for config in itertools.product(hostIdList, pwrList, modulationList):
+        hostId, pwr, modulation = config
+        binaryPatchingDict = {
+            'host_id': hostId,
+            'gloria_power': pwr,
+            'gloria_modulation': modulation,
+            # 'gloria_band': 2,
+            # 'elwb_n_tx': 3,
+            # 'elwb_num_hops': 8,
+        }
+
+        create_test(binaryPatchingDict)
+        # create_test() # without binary patching
+        run_test()
