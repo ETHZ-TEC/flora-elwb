@@ -236,10 +236,12 @@ def run_test():
 
 if __name__ == "__main__":
     binaryPatchingDict = {
-        'host_id': 10,
-        'gloria_power': 7,
+        'host_id': 3,
+        'gloria_power': 0,
         'gloria_modulation': 10,
         # 'gloria_band': 2,
+        'elwb_n_tx': 3,
+        'elwb_num_hops': 8,
     }
 
     create_test(binaryPatchingDict)

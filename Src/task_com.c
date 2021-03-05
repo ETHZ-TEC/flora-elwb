@@ -22,6 +22,8 @@ volatile uint16_t         host_id = HOST_ID;
 static volatile int8_t    gloria_power = GLORIA_INTERFACE_POWER;
 static volatile uint8_t   gloria_modulation = GLORIA_INTERFACE_MODULATION;
 static volatile uint8_t   gloria_band = GLORIA_INTERFACE_RF_BAND;
+static volatile uint8_t   elwb_n_tx = ELWB_CONF_N_TX;
+static volatile uint8_t   elwb_num_hops = ELWB_NUM_HOPS;
 
 void listen_timeout(void)
 {
@@ -100,14 +102,6 @@ void vTask_com(void const * argument)
 #endif /* FLOCKLAB */
   elwb_sched_set_time((uint64_t)currtime * 1000000 + ELWB_CONF_STARTUP_DELAY * 1000);
 
-  /* make sure the radio is awake */
-  radio_wakeup();
-
-  /* set config values */
-  gloria_set_tx_power(gloria_power);
-  gloria_set_modulation(gloria_modulation);
-  gloria_set_band(gloria_band);
-
   /* print config in json format */
   LOG_INFO("{"
            "\"node_id\":%d,"
@@ -125,15 +119,29 @@ void vTask_com(void const * argument)
     gloria_power,
     gloria_modulation,
     gloria_band,
-    ELWB_CONF_N_TX,
-    ELWB_NUM_HOPS,
+    elwb_n_tx,
+    elwb_num_hops,
     ELWB_CONF_MAX_PKT_LEN,
     ELWB_CONF_MAX_DATA_SLOTS
   );
 
-  /* start eLWB */
+  /* make sure the radio is awake */
+  radio_wakeup();
+
+  /* set gloria config values */
+  gloria_set_tx_power(gloria_power);
+  gloria_set_modulation(gloria_modulation);
+  gloria_set_band(gloria_band);
+
+  /* init eLWB */
   elwb_init(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, xQueueHandle_retransmit, listen_timeout);
   elwb_register_slot_callback(collect_radio_stats);
+
+  /* set elwb config values */
+  elwb_set_n_tx(elwb_n_tx);
+  elwb_set_num_hops(elwb_num_hops);
+
+  /* start eLWB */
   elwb_start(IS_HOST);
   FATAL_ERROR("eLWB task terminated");
 
