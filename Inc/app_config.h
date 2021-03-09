@@ -13,10 +13,6 @@
 #define __APP_CONFIG_H
 
 
-/* externs for binary patching */
-extern volatile uint16_t  host_id;
-
-
 /* --- adjustable parameters --- */
 
 /* general */
@@ -96,8 +92,6 @@ extern volatile uint16_t  host_id;
 #define ELWB_CONF_T_CONT                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, 2)
 #define ELWB_CONF_T_GAP                 ELWB_MS_TO_TICKS(5)
 #define ELWB_CONF_SCHED_PERIOD_IDLE     15
-#define ELWB_CONF_SCHED_PERIOD_MIN      5
-#define ELWB_CONF_SCHED_PERIOD_MAX      120
 #define ELWB_CONF_DATA_ACK              1
 #define ELWB_CONF_MAX_NODES             30
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES

@@ -18,14 +18,16 @@ extern QueueHandle_t xQueueHandle_tx;
 extern QueueHandle_t xQueueHandle_retransmit;
 
 /* global variables for binary patching the config */
-volatile uint16_t         host_id = HOST_ID;
-static volatile int8_t    gloria_power = GLORIA_INTERFACE_POWER;
+volatile uint16_t         host_id           = HOST_ID;
+static volatile int8_t    gloria_power      = GLORIA_INTERFACE_POWER;
 static volatile uint8_t   gloria_modulation = GLORIA_INTERFACE_MODULATION;
-static volatile uint8_t   gloria_band = GLORIA_INTERFACE_RF_BAND;
-static volatile uint8_t   elwb_n_tx = ELWB_CONF_N_TX;
-static volatile uint8_t   elwb_num_hops = ELWB_NUM_HOPS;
-static volatile uint32_t  elwb_period = ELWB_CONF_SCHED_PERIOD_IDLE;
-extern uint32_t health_msg_period;
+static volatile uint8_t   gloria_band       = GLORIA_INTERFACE_RF_BAND;
+static volatile uint8_t   elwb_n_tx         = ELWB_CONF_N_TX;
+static volatile uint8_t   elwb_num_hops     = ELWB_NUM_HOPS;
+static volatile uint32_t  elwb_period       = ELWB_CONF_SCHED_PERIOD_IDLE;
+
+extern uint32_t           health_msg_period;
+
 
 void listen_timeout(void)
 {
@@ -104,8 +106,6 @@ void vTask_com(void const * argument)
 #endif /* FLOCKLAB */
   elwb_sched_set_time((uint64_t)currtime * 1000000 + ELWB_CONF_STARTUP_DELAY * 1000);
 
-
-
   /* make sure the radio is awake */
   radio_wakeup();
 
@@ -114,14 +114,16 @@ void vTask_com(void const * argument)
   gloria_set_modulation(gloria_modulation);
   gloria_set_band(gloria_band);
 
-  /* init eLWB */
-  elwb_init(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, xQueueHandle_retransmit, listen_timeout, IS_HOST);
-  elwb_register_slot_callback(collect_radio_stats);
-
   /* set elwb config values */
+  elwb_sched_set_period(elwb_period);
   elwb_set_n_tx(elwb_n_tx);
   elwb_set_num_hops(elwb_num_hops);
-  elwb_sched_set_period(elwb_period);
+
+  /* init eLWB */
+  if (!elwb_init(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, xQueueHandle_retransmit, listen_timeout, IS_HOST)) {
+    FATAL_ERROR("eLWB init failed");
+  }
+  elwb_register_slot_callback(collect_radio_stats);
 
   /* print config in json format */
   LOG_INFO("{"
