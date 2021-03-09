@@ -24,6 +24,8 @@ static volatile uint8_t   gloria_modulation = GLORIA_INTERFACE_MODULATION;
 static volatile uint8_t   gloria_band = GLORIA_INTERFACE_RF_BAND;
 static volatile uint8_t   elwb_n_tx = ELWB_CONF_N_TX;
 static volatile uint8_t   elwb_num_hops = ELWB_NUM_HOPS;
+static volatile uint32_t  elwb_period = ELWB_CONF_SCHED_PERIOD_IDLE;
+extern uint32_t health_msg_period;
 
 void listen_timeout(void)
 {
@@ -102,28 +104,7 @@ void vTask_com(void const * argument)
 #endif /* FLOCKLAB */
   elwb_sched_set_time((uint64_t)currtime * 1000000 + ELWB_CONF_STARTUP_DELAY * 1000);
 
-  /* print config in json format */
-  LOG_INFO("{"
-           "\"node_id\":%d,"
-           "\"host_id\":%d,"
-           "\"tx_power\":%d,"
-           "\"modulation\":%d,"
-           "\"rf_band\":%d,"
-           "\"n_tx\":%d,"
-           "\"num_hops\":%d,"
-           "\"elwb_pkt_len\":%d,"
-           "\"elwb_num_slots\":%d"
-           "}",
-    NODE_ID,
-    host_id,
-    gloria_power,
-    gloria_modulation,
-    gloria_band,
-    elwb_n_tx,
-    elwb_num_hops,
-    ELWB_CONF_MAX_PKT_LEN,
-    ELWB_CONF_MAX_DATA_SLOTS
-  );
+
 
   /* make sure the radio is awake */
   radio_wakeup();
@@ -134,15 +115,43 @@ void vTask_com(void const * argument)
   gloria_set_band(gloria_band);
 
   /* init eLWB */
-  elwb_init(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, xQueueHandle_retransmit, listen_timeout);
+  elwb_init(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, xQueueHandle_retransmit, listen_timeout, IS_HOST);
   elwb_register_slot_callback(collect_radio_stats);
 
   /* set elwb config values */
   elwb_set_n_tx(elwb_n_tx);
   elwb_set_num_hops(elwb_num_hops);
+  elwb_sched_set_period(elwb_period);
+
+  /* print config in json format */
+  LOG_INFO("{"
+           "\"node_id\":%d,"
+           "\"host_id\":%d,"
+           "\"tx_power\":%d,"
+           "\"modulation\":%d,"
+           "\"rf_band\":%d,"
+           "\"n_tx\":%d,"
+           "\"num_hops\":%d,"
+           "\"elwb_pkt_len\":%d,"
+           "\"elwb_num_slots\":%d,"
+           "\"elwb_period\":%d,"
+           "\"health_msg_period\":%d"
+           "}",
+    NODE_ID,
+    host_id,
+    gloria_power,
+    gloria_modulation,
+    gloria_band,
+    elwb_n_tx,
+    elwb_num_hops,
+    ELWB_CONF_MAX_PKT_LEN,
+    ELWB_CONF_MAX_DATA_SLOTS,
+    elwb_sched_get_period(),
+    health_msg_period
+  );
 
   /* start eLWB */
-  elwb_start(IS_HOST);
+  elwb_start();
   FATAL_ERROR("eLWB task terminated");
 
   /* for debugging purposes only if eLWB is not used */

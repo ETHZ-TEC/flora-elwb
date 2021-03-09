@@ -25,7 +25,8 @@ fl = Flocklab()
 
 
 ################################################################################
-TESTDIR = '/home/rtrueb/polybox/PhD/Projects/FlockLab2/flocklab_tests'
+# TESTDIR = '/home/rtrueb/polybox/PhD/Projects/FlockLab2/flocklab_tests'
+TESTDIR = './data/dataset1/'
 
 FSK_MODULATIONS = [8, 9, 10]
 
@@ -250,9 +251,10 @@ if __name__ == "__main__":
 
     # testIdList = [3048, 3077]
     # testIdList = [3081, 3082]
-    # testIdList = [3128, 3129, 3130]
+    # testIdList = [3128, 3129, 3130] # sample dataset
     # testIdList = [3559]
-    testIdList = [3560, 3561, 3562]
+    # testIdList = [3560, 3561, 3562] # dataset debug
+    testIdList = range(3582, 3601+1) # dataset1
 
     # obtain map to map elwb_phase enum idx to name
     elwbPhases = readTypedefEnum('elwb_phases_t', '../Lib/protocol/elwb/elwb.h', replaceName=('ELWB_PHASE_', ''))
@@ -261,6 +263,13 @@ if __name__ == "__main__":
     dfList = []
     for testId in testIdList:
         print('===== testId={} ====='.format(testId))
+
+        # download test results if not available already
+        if not os.path.isdir(os.path.join(TESTDIR, str(testId))):
+            print('Downloading FL2 test {}'.format(testId))
+            fl.getResults(testId, TESTDIR)
+
+        # extract data from serial.csv and testconfig.xml
         df = extractData(testId, testDir=TESTDIR)
 
         # map elwb_phase enum idx to names

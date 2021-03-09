@@ -15,8 +15,6 @@ import git
 import itertools
 from collections import OrderedDict
 
-import patchelf
-
 from flocklab import Flocklab
 from flocklab import *
 
@@ -28,7 +26,6 @@ fl = Flocklab()
 obsNormal = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
 obsHg = []
 
-DURATION = 70
 imageNormalId = 'imageNormal'
 imageHgId = 'imageHg'
 cwd = os.path.dirname(os.path.realpath(__file__))
@@ -61,23 +58,11 @@ def readConfig(symbol, configFile='../Inc/app_config.h', idx=0):
         ret = int(ret)
     return ret
 
-def get_globalvar_addr(varname, filename='../Debug/comboard_elwb.elf'):
-    with open(os.path.join(cwd, filename), 'rb') as f:
-        elffile = ELFFile(f)
-        symtab = elffile.get_section_by_name('.symtab')
-        sym = symtab.get_symbol_by_name(varname)
-
-        if sym is None or len(sym) == 0:
-            return None
-        elif len(sym) > 1:
-            print('WARNING: multiple entries found!')
-        return sym[0]['st_value']
-
 def check_globalvar_exists(dataTraceConfList):
     for elem in dataTraceConfList:
         var = elem[0]
         if not var[0:2] == '0x': # ignore variables directly specified by an address
-            if get_globalvar_addr(var) is None:
+            if fl.getSymbolAddress(elffile='../Debug/comboard_elwb.elf', symbName=var) is None:
                 raise Exception('ERROR: datatrace variable "{}" is not contained in binary image!'.format(var))
 
 def readAllConfig():
@@ -106,7 +91,7 @@ def readAllConfig():
 # Test creation
 ################################################################################
 
-def create_test(imagePatchingDict=None):
+def create_test(duration, imagePatchingDict=None):
     print('===== Create Test =====')
 
     # read info from config/header files
@@ -135,7 +120,7 @@ def create_test(imagePatchingDict=None):
         for k, v in imagePatchingDict.items():
             print('{}: {}'.format(k, v))
             signed = (k in ['gloria_power'])
-            patchelf.writeSymbolValue(elfPath=imagePathPatched, symbName=k, symbReplace=v, signed=signed)
+            fl.writeSymbolValue(elfPath=imagePathPatched, symbName=k, symbReplace=v, signed=signed)
         custom['imagePatchingDict'] = imagePatchingDict
 
     # construct flockab config
@@ -143,7 +128,7 @@ def create_test(imagePatchingDict=None):
     fc.generalConf.name = 'eLWB data collection'
     fc.generalConf.description = ''
     # fc.generalConf.startTime = datetime.datetime(2020, 4, 28, 8, 0)
-    fc.generalConf.duration = DURATION
+    fc.generalConf.duration = duration
 
     if obsNormal:
         targetNormal = TargetConf()
@@ -243,8 +228,22 @@ if __name__ == "__main__":
     # modulationList = [1, 5, 7, 8, 10]
 
     hostIdList = [2]
-    pwrList = [0] # [-9, 0, 9]
-    modulationList = [10]
+    pwrList = [-9, 0, 9, 14]
+    modulationList = [3, 5, 7, 8, 10]
+    # periodList = [400]
+
+    duration = 5*60 + 30
+
+    mod2period = {
+        10: 5,
+        9: 5,
+        8: 5,
+        7: 16,
+        5: 46,
+        3: 150,
+        2: 300,
+    }
+
 
     for config in itertools.product(hostIdList, pwrList, modulationList):
         hostId, pwr, modulation = config
@@ -255,8 +254,10 @@ if __name__ == "__main__":
             # 'gloria_band': 2,
             # 'elwb_n_tx': 3,
             # 'elwb_num_hops': 8,
+            'elwb_period': mod2period[modulation],
+            'health_msg_period': mod2period[modulation],
         }
 
-        create_test(binaryPatchingDict)
+        create_test(duration, binaryPatchingDict)
         # create_test() # without binary patching
         run_test()
