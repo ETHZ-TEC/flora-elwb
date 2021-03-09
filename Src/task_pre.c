@@ -162,7 +162,7 @@ void vTask_pre(void const * argument)
   {
     /* wait for notification token (= explicitly granted permission to run) */
     PRE_TASK_SUSPENDED();
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     PRE_TASK_RESUMED();
 
 #if BOLT_ENABLE

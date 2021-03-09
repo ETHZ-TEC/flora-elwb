@@ -103,13 +103,16 @@ void vTask_post(void const * argument)
   static uint32_t      last_health_pkt = 0;
   static bool          node_info_sent  = false;
 
-  LOG_VERBOSE("Post task started");
+  LOG_VERBOSE("post task started");
+
+  /* make sure the task runs once after startup */
+  xTaskNotify(xTaskHandle_post, 0, eNoAction);
 
   /* Infinite loop */
   for(;;)
   {
     POST_TASK_SUSPENDED();
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);   /* wait for notification token */
+    xTaskNotifyWait(0, ULONG_MAX, NULL, portMAX_DELAY);
     POST_TASK_RESUMED();
 
     /* process all packets rcvd from the network (regardless of whether there is space in the BOLT queue) */
