@@ -101,12 +101,10 @@ void vTask_post(void const * argument)
 {
   static dpp_message_t msg_buffer;
   static uint32_t      last_health_pkt = 0;
-  static bool          node_info_sent  = false;
 
   LOG_VERBOSE("post task started");
 
-  /* make sure the task runs once after startup */
-  xTaskNotify(xTaskHandle_post, 0, eNoAction);
+  send_node_info();
 
   /* Infinite loop */
   for(;;)
@@ -129,16 +127,7 @@ void vTask_post(void const * argument)
     }
 
     /* generate a node info message if necessary (must be here) */
-    if (!node_info_sent) {
-#if !FLOCKLAB
-      uint32_t network_time = elwb_get_time_sec();
-      if (network_time > 1500000000)    /* wait until we have a valid timestamp */
-#endif /* FLOCKLAB */
-      {
-        send_node_info();
-        node_info_sent = true;
-      }
-    } else if (health_msg_period) {
+    if (health_msg_period) {
       /* only send other messages once the node info msg has been sent! */
       uint64_t network_time;
       elwb_get_last_syncpoint(&network_time, 0);

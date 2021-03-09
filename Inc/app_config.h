@@ -91,7 +91,7 @@
 #define ELWB_CONF_T_DATA                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, DPP_MSG_PKT_LEN / 2)   /* note: use estimated max. packet length in bytes to calculate slot length */
 #define ELWB_CONF_T_CONT                GLORIA_INTERFACE_FLOOD_DURATION(ELWB_CONF_N_TX, ELWB_NUM_HOPS, 2)
 #define ELWB_CONF_T_GAP                 ELWB_MS_TO_TICKS(10)
-#define ELWB_CONF_SCHED_PERIOD_IDLE     15
+#define ELWB_CONF_SCHED_PERIOD          15
 #define ELWB_CONF_DATA_ACK              1
 #define ELWB_CONF_MAX_NODES             30
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES

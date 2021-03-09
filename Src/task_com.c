@@ -24,7 +24,7 @@ static volatile uint8_t   gloria_modulation = GLORIA_INTERFACE_MODULATION;
 static volatile uint8_t   gloria_band       = GLORIA_INTERFACE_RF_BAND;
 static volatile uint8_t   elwb_n_tx         = ELWB_CONF_N_TX;
 static volatile uint8_t   elwb_num_hops     = ELWB_NUM_HOPS;
-static volatile uint32_t  elwb_period       = ELWB_CONF_SCHED_PERIOD_IDLE;
+static volatile uint32_t  elwb_period       = ELWB_CONF_SCHED_PERIOD;
 
 extern uint32_t           health_msg_period;
 
@@ -38,6 +38,9 @@ void listen_timeout(void)
 void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_packet_t* packet)
 {
   if (initiator_id != NODE_ID) {
+    if ((elwb_phase==ELWB_PHASE_SCHED1 || elwb_phase==ELWB_PHASE_SCHED2) && !ELWB_IS_SCHEDULE_PACKET(packet)) {
+      return;
+    }
     uint8_t  rx_cnt        = gloria_get_rx_cnt();
     uint8_t  rx_started    = gloria_get_rx_started_cnt();
     uint8_t  rx_idx        = 0;
