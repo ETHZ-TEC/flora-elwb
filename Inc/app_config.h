@@ -71,7 +71,7 @@
 /* Gloria config */
 #define GLORIA_INTERFACE_POWER          1    /* transmit power in dBm (max. value is 14 for most RF bands); keep non-zero init for binary patching!; config will be overwritten by binary patching! */
 #if FLOCKLAB
-  #define GLORIA_INTERFACE_MODULATION   7    /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
+  #define GLORIA_INTERFACE_MODULATION   10    /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
   #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #elif BASEBOARD
   /* configuration for the deployment */
@@ -93,6 +93,7 @@
 #define ELWB_CONF_T_GAP                 ELWB_MS_TO_TICKS(10)
 #define ELWB_CONF_SCHED_PERIOD          15
 #define ELWB_CONF_DATA_ACK              1
+#define ELWB_CONF_CONT_USE_HSTIMER      1
 #define ELWB_CONF_MAX_NODES             30
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES
 #define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
