@@ -38,7 +38,7 @@ void listen_timeout(void)
 void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_packet_t* packet)
 {
   if (initiator_id != NODE_ID) {
-    if ((elwb_phase == ELWB_PHASE_SCHED1 || elwb_phase == ELWB_PHASE_SCHED2) && !ELWB_IS_SCHEDULE_PACKET(packet)) {
+    if ((elwb_phase == ELWB_PHASE_SCHED1) && !ELWB_IS_SCHEDULE_PACKET(packet)) {
       return;
     }
     uint8_t  rx_cnt        = gloria_get_rx_cnt();

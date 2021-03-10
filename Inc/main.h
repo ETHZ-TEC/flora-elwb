@@ -115,7 +115,7 @@ extern IWDG_HandleTypeDef hiwdg;
 /* USER CODE BEGIN EM */
 
 #define FATAL_ERROR(str)    __disable_irq(); \
-                            LOG_PRINT_FUNC("FATAL ERROR: " str, sizeof(str) + 13); \
+                            uart_tx_direct("FATAL ERROR: " str, sizeof(str) + 13); \
                             led_on(LED_EVENT); \
                             delay_us(10000000); \
                             NVIC_SystemReset()
