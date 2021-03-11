@@ -74,9 +74,7 @@ def readAllConfig():
     ret['GLORIA_INTERFACE_RF_BAND'] = readConfig('GLORIA_INTERFACE_RF_BAND')
     ret['ELWB_CONF_N_TX'] = readConfig('ELWB_CONF_N_TX')
     ret['ELWB_NUM_HOPS'] = readConfig('ELWB_NUM_HOPS')
-    ret['ELWB_CONF_SCHED_PERIOD_IDLE'] = readConfig('ELWB_CONF_SCHED_PERIOD_IDLE')
-    ret['ELWB_CONF_SCHED_PERIOD_MIN'] = readConfig('ELWB_CONF_SCHED_PERIOD_MIN')
-    ret['ELWB_CONF_SCHED_PERIOD_MAX'] = readConfig('ELWB_CONF_SCHED_PERIOD_MAX')
+    ret['ELWB_CONF_SCHED_PERIOD'] = readConfig('ELWB_CONF_SCHED_PERIOD')
     ret['ELWB_CONF_DATA_ACK'] = readConfig('ELWB_CONF_DATA_ACK')
     ret['ELWB_CONF_MAX_NODES'] = readConfig('ELWB_CONF_MAX_NODES')
     ret['ELWB_CONF_SCHED_NODE_LIST'] = [int(e) for e in readConfig('ELWB_CONF_SCHED_NODE_LIST').replace(',', '').split()]
@@ -96,7 +94,7 @@ def create_test(duration, imagePatchingDict=None):
 
     # read info from config/header files
     custom = dict()
-    for var in ['FLOCKLAB', 'HOST_ID', 'FLOCKLAB_SWD', 'SWO_ENABLE']:
+    for var in ['FLOCKLAB', 'HOST_ID', 'FLOCKLAB_SWD', 'SWO_ENABLE', 'LOG_USE_DMA']:
         custom[var] = readConfig(var)
     for var in ['GIT_REV', 'BUILD_TIME']:
         custom[var] = readConfig(var, configFile='../Inc/gitrev.h')
@@ -227,23 +225,30 @@ if __name__ == "__main__":
     # pwrList = [-9, 0, 9, 14]
     # modulationList = [1, 5, 7, 8, 10]
 
+    # hostIdList = [2]
+    # pwrList = [-9, 0, 9, 14]
+    # modulationList = [3, 5, 7, 8, 10]
+
     hostIdList = [2]
-    pwrList = [-9, 0, 9, 14]
-    modulationList = [3, 5, 7, 8, 10]
-    # periodList = [400]
+    pwrList = [0]
+    modulationList = [1]
 
-    duration = 5*60 + 30
-
+    # for num_hops=6
     mod2period = {
         10: 5,
         9: 5,
         8: 5,
         7: 16,
-        5: 46,
+        5: 48,
         3: 150,
         2: 300,
+        1: 625,
+        # 1: 360 (num_hops=3)
     }
 
+    # duration = 5*60 + 30
+    duration = 60
+    # duration = mod2period[modulationList[0]] + 10
 
     for config in itertools.product(hostIdList, pwrList, modulationList):
         hostId, pwr, modulation = config
@@ -253,11 +258,13 @@ if __name__ == "__main__":
             'gloria_modulation': modulation,
             # 'gloria_band': 2,
             # 'elwb_n_tx': 3,
-            # 'elwb_num_hops': 8,
-            'elwb_period': mod2period[modulation],
-            'health_msg_period': mod2period[modulation],
+            'elwb_num_hops': 3,
+            'elwb_period': 360,
+            'health_msg_period': 360,
+            # 'elwb_period': mod2period[modulation],
+            # 'health_msg_period': mod2period[modulation],
         }
 
         create_test(duration, binaryPatchingDict)
-        # create_test() # without binary patching
+        # create_test(duration) # without binary patching
         run_test()

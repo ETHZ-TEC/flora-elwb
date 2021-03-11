@@ -16,11 +16,12 @@ import pickle
 import hashlib
 import re
 
-# graphs
+# network graphs
 import networkx as nx
 from bokeh import plotting
 from bokeh.layouts import column
-from bokeh.models import ColumnDataSource, LabelSet, Band
+from bokeh.models import ColumnDataSource, LabelSet, Div
+from bokeh.palettes import Category10_10
 
 # construct html with python
 import dominate
@@ -69,7 +70,7 @@ htmlStyleBlock = '''
 # Functions
 ################################################################################
 
-def extractConnData(df, txConfigLabels):
+def extractConnectionData(df, txConfigLabels):
     # get all node IDs
     nodeIds = sorted(df.node_id.unique())
     numNodes = len(nodeIds)
@@ -87,12 +88,18 @@ def extractConnData(df, txConfigLabels):
         numFloodsMatrix      = np.empty( (numNodes, numNodes,) ) * np.nan    # number of floods per connection
         numFloodsSuccMatrix  = np.empty( (numNodes, numNodes,) ) * np.nan    # number successfully received floods per connection
 
+        # FRR and hop distance
         dfModTmp = dfMod[(dfMod.elwb_phase!='CONT') & (dfMod.elwb_phase!='REQ')]   # ignore floods during contention phase since content is unreliable in parts
         for conn, dfConn in dfModTmp.groupby(by=['initiator_id', 'node_id']):
             nodeTx, nodeRx = conn
 
-            # skip flood log entries where nodes have not received the nodeId of the host
+            # skip flood log entries where nodes have not yet received the nodeId of the host
             if nodeTx==0 or nodeRx==0:
+                continue
+
+            # skip flood log entreis where which contain faulty data
+            if not nodeTx in nodeIds:
+                print('WARNING: out-of-range initiator_id {} observed!'.format(nodeTx))
                 continue
 
             nodeTxIdx = nodeIds.index(nodeTx)
@@ -108,12 +115,18 @@ def extractConnData(df, txConfigLabels):
                 hopDistanceMatrix[nodeTxIdx][nodeRxIdx] = hopDistance
             assert len(dfConn[dfConn.notna().rx_idx]) == numFloodsSucc # this needs to hold, otherwise we cannot use numFloodsSucc to determine number of floods used to calculate avg hopDistance
 
+        # PRR
         dfModTmp = dfMod[(dfMod.elwb_phase!='CONT') & (dfMod.elwb_phase!='REQ') & (dfMod.rx_idx==0)]   # ignore floods during contention phase & and filter out floods with rx_idx > 0
         for conn, dfConn in dfModTmp.groupby(by=['initiator_id', 'node_id']):
             nodeTx, nodeRx = conn
 
             # skip flood log entries where nodes have not received the nodeId of the host
             if nodeTx==0 or nodeRx==0:
+                continue
+
+            # skip flood log entreis where which contain faulty data
+            if not nodeTx in nodeIds:
+                print('WARNING: out-of-range initiator_id {} observed!'.format(nodeTx))
                 continue
 
             nodeTxIdx = nodeIds.index(nodeTx)
@@ -133,117 +146,48 @@ def extractConnData(df, txConfigLabels):
 
     return matrixDfDict
 
-def saveFrrHtml(matrixDfDict, txConfigLabels, dfHash):
+
+def saveMatricesToHtml(matrixDfDict, xConfigLabels, dfHash, matrixNames, titles, cmaps, formats, applymaps=None):
     h = html()
+    if applymaps is None:
+        applymaps = (lambda x: '', lambda x: '')
     with h.add(head()):
         meta(charset='UTF-8')
         style(raw(htmlStyleBlock))
     with h.add(body()).add(div(id='content')):
-        h1('Flood Reception Ratio (FRR)')
+        # h1('Main Title')
         for txConfig in matrixDfDict.keys():
-            frr_html = styleDf(
-                df=matrixDfDict[txConfig]['frr'],
-                cmap='inferno',
-                format='{:.1f}',
+            html0 = styleDf(
+                df=matrixDfDict[txConfig][matrixNames[0]],
+                cmap=cmaps[0],
+                format=formats[0],
+                applymap=applymaps[0],
             )
-            numFloods_html = styleDf(
-                df=matrixDfDict[txConfig]['numFloods'],
-                cmap='YlGnBu',
-                format='{:.0f}',
-                applymap=lambda x: 'background: white' if pd.isnull(x) else '',
+            html1 = styleDf(
+                df=matrixDfDict[txConfig][matrixNames[1]],
+                cmap=cmaps[1],
+                format=formats[1],
+                applymap=applymaps[1],
             )
             configStr = ', '.join(['{}={}'.format(k, v) for k, v in zip(txConfigLabels, txConfig)])
             h2(configStr)
             with table(cls="outer").add(tbody()):
                 with tr(cls="outer"):
-                    th('FRR Matrix', cls='outer')
+                    th(titles[0], cls='outer')
                     th(cls="outer")
-                    th('Number of Floods', cls='outer')
+                    th(titles[1], cls='outer')
                 with tr(cls='outer'):
-                    td(raw(frr_html), cls='outer')
+                    td(raw(html0), cls='outer')
                     td(cls="outer")
-                    td(raw(numFloods_html), cls='outer')
+                    td(raw(html1), cls='outer')
 
-    htmlPath = './data/frr_{}.html'.format(dfHash[:8])
-    os.makedirs(os.path.split(htmlPath)[0], exist_ok=True)
-    with open(htmlPath,"w") as fp:
-       fp.write(h.render())
-
-def saveHopDistanceHtml(matrixDfDict, txConfigLabels, dfHash):
-    h = html()
-    with h.add(head()):
-        meta(charset='UTF-8')
-        style(raw(htmlStyleBlock))
-    with h.add(body()).add(div(id='content')):
-        h1('Hop Distance')
-        for txConfig in matrixDfDict.keys():
-            frr_html = styleDf(
-                df=matrixDfDict[txConfig]['hopDistance'],
-                cmap='inferno_r',
-                format='{:.1f}',
-                applymap=lambda x: 'background: white' if pd.isnull(x) else '',
-            )
-            numFloods_html = styleDf(
-                df=matrixDfDict[txConfig]['numFloodsSucc'],
-                cmap='YlGnBu',
-                format='{:.0f}',
-                applymap=lambda x: 'background: white' if pd.isnull(x) else '',
-            )
-            configStr = ', '.join(['{}={}'.format(k, v) for k, v in zip(txConfigLabels, txConfig)])
-            h2(configStr)
-            with table(cls="outer").add(tbody()):
-                with tr(cls="outer"):
-                    th('Hop Distance Matrix (avg rx_idx)', cls='outer')
-                    th(cls="outer")
-                    th('Number of Successfully Received Floods', cls='outer')
-                with tr(cls='outer'):
-                    td(raw(frr_html), cls='outer')
-                    td(cls="outer")
-                    td(raw(numFloods_html), cls='outer')
-
-    htmlPath = './data/hopDistance_{}.html'.format(dfHash[:8])
-    os.makedirs(os.path.split(htmlPath)[0], exist_ok=True)
-    with open(htmlPath,"w") as fp:
-       fp.write(h.render())
-
-def savePrrHtml(matrixDfDict, txConfigLabels, dfHash):
-    h = html()
-    with h.add(head()):
-        meta(charset='UTF-8')
-        style(raw(htmlStyleBlock))
-    with h.add(body()).add(div(id='content')):
-        h1('Packet Reception Ratio (PRR)')
-        for txConfig in matrixDfDict.keys():
-            frr_html = styleDf(
-                df=matrixDfDict[txConfig]['prr'],
-                cmap='inferno',
-                format='{:.1f}',
-            )
-            numFloods_html = styleDf(
-                df=matrixDfDict[txConfig]['numFloods'],
-                cmap='YlGnBu',
-                format='{:.0f}',
-                applymap=lambda x: 'background: white' if pd.isnull(x) else '',
-            )
-            configStr = ', '.join(['{}={}'.format(k, v) for k, v in zip(txConfigLabels, txConfig)])
-            h2(configStr)
-            with table(cls="outer").add(tbody()):
-                with tr(cls="outer"):
-                    th('PRR Matrix (num of received floods with rx_idx=0)', cls='outer')
-                    th(cls="outer")
-                    th('Number of Floods', cls='outer')
-                with tr(cls='outer'):
-                    td(raw(frr_html), cls='outer')
-                    td(cls="outer")
-                    td(raw(numFloods_html), cls='outer')
-
-    htmlPath = './data/prr_{}.html'.format(dfHash[:8])
+    htmlPath = './data/{}_{}.html'.format(matrixNames[0], dfHash[:8])
     os.makedirs(os.path.split(htmlPath)[0], exist_ok=True)
     with open(htmlPath,"w") as fp:
        fp.write(h.render())
 
 def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95):
-    print('==== getConnectivity ====')
+    print('==== evalConnectivity ====')
     plotDict = {}
     nodeDegreeDict = {}
     for txConfig, d in matrixDfDict.items():
@@ -293,36 +237,52 @@ def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95):
         print('nodeDegree: min={:.2f}, mean={:.2f}, max={:.2f}'.format(np.min(vals), np.mean(vals), np.max(vals)))
 
     # save all network graphs to html
-    htmlPath = './data/prr_connectivity_{}.html'.format(dfHash[:8])
+    htmlPath = './data/prr_connectivity_graph_{}.html'.format(dfHash[:8])
     os.makedirs(os.path.split(htmlPath)[0], exist_ok=True)
     plotting.output_file(htmlPath)
-    # plotting.save(column(list(plotDict.values())))
-    plotting.show(column(list(plotDict.values()))) # DEBUG
+    infoDiv = Div(text='prrThreshold={}'.format(prrThreshold))
+    plotting.save(column([infoDiv] + list(plotDict.values())))
 
-    # plot nodeDegree data
-    source = ColumnDataSource({
-        'x': [e[txConfigLabels.index('tx_power')] for e in list(nodeDegreeDict.keys())],
-        'y': [np.mean(list(e.values())) for e in nodeDegreeDict.values()],
-        'upper': [np.min(list(e.values())) for e in nodeDegreeDict.values()],
-        'lower': [np.max(list(e.values())) for e in nodeDegreeDict.values()],
-    })
-    p = plotting.figure()
-    p.scatter(x='x', y='y', line_color='k', fill_alpha=0.3, size=5, source=source)
-    band = Band(base='x', lower='lower', upper='upper', source=source, level='underlay',
-                fill_alpha=1.0, line_width=1, line_color='black')
-    p.add_layout(band)
-
-    p.title.text = "Node Degree"
-    p.xgrid[0].grid_line_color=None
-    p.ygrid[0].grid_line_alpha=0.5
-    p.xaxis.axis_label = 'Node Degree (min/avg/max)'
-    p.yaxis.axis_label = 'tx_power config [dBm]'
-
-    htmlPath = './data/connectivity_nodeDegree_{}.html'.format(dfHash[:8])
+    ## plot nodeDegree data
+    # create df with nodeDegree data
+    nodeDegreeDf = pd.DataFrame()
+    for idx, label in enumerate(txConfigLabels):
+        nodeDegreeDf[label] = [e[idx] for e in list(nodeDegreeDict.keys())]
+    nodeDegreeDf['nodeDegreeAvg'] = [np.mean(list(e.values())) for e in nodeDegreeDict.values()]
+    nodeDegreeDf['nodeDegreeMax'] = [np.max(list(e.values())) for e in nodeDegreeDict.values()]
+    nodeDegreeDf['nodeDegreeMin'] = [np.min(list(e.values())) for e in nodeDegreeDict.values()]
+    # create all plots
+    plotList = []
+    aggP = plotting.figure() # aggregated plot
+    color = Category10_10.__iter__()
+    for modulation, groupDf in nodeDegreeDf.groupby(by=['modulation']):
+        source = ColumnDataSource(groupDf)
+        col = next(color)
+        aggP.line(x='tx_power', y='nodeDegreeAvg', source=source, legend_label='modulation={}'.format(modulation), line_color=col, )
+        aggP.circle(x='tx_power', y='nodeDegreeAvg', source=source, legend_label='modulation={}'.format(modulation), color=col)
+        p = plotting.figure()
+        p.varea(x='tx_power', y1='nodeDegreeMin', y2='nodeDegreeMax', source=source, level='underlay', fill_alpha=0.3)
+        p.line(x='tx_power', y='nodeDegreeAvg', line_color='black', source=source)
+        p.circle(x='tx_power', y='nodeDegreeAvg', color='black', line_color='black', source=source)
+        p.title.text = "Node Degree (modulation={})".format(modulation)
+        p.xgrid[0].grid_line_color=None
+        p.ygrid[0].grid_line_alpha=0.5
+        p.xaxis.axis_label = 'tx_power config [dBm]'
+        p.yaxis.axis_label = 'Node Degree (min/avg/max)'
+        plotList.append(p)
+    aggP.title.text = 'Node Degree (all modulations, avg only)'
+    aggP.xgrid[0].grid_line_color=None
+    aggP.ygrid[0].grid_line_alpha=0.5
+    aggP.xaxis.axis_label = 'tx_power config [dBm]'
+    aggP.yaxis.axis_label = 'Node Degree (avg)'
+    aggP.legend.location = "top_left"
+    aggP.legend.click_policy="hide"
+    # plot all plots to a single HTML file
+    htmlPath = './data/prr_connectivity_nodeDegree_{}.html'.format(dfHash[:8])
     os.makedirs(os.path.split(htmlPath)[0], exist_ok=True)
     plotting.output_file(htmlPath)
-    # plotting.save(p)
-    plotting.show(p) # DEBUG
+    infoDiv = Div(text='prrThreshold={}'.format(prrThreshold))
+    plotting.save(column([infoDiv, aggP] + plotList))
 
 
 ################################################################################
@@ -350,19 +310,48 @@ if __name__ == "__main__":
     nodeIds = [int(e) for e in sorted(df.node_id.unique())] # explicitely convert to python int since bokeh from_networkx does not work with int64
     numNodes = len(nodeIds)
 
-    ## extract and output matrix data
-
     # define txConfig labels which are used for grouping the results
     txConfigLabels = ['modulation', 'tx_power', 'n_tx', 'num_hops']
 
-    # extract data per connection (Tx, Rx)
-    print('==== extractConnData ====')
-    matrixDfDict = extractConnData(df, txConfigLabels)
+    ## extract data per connection (Tx, Rx)
+    print('==== extractConnectionData ====')
+    matrixDfDict = extractConnectionData(df, txConfigLabels)
 
     ## save matrix data as colored matrices to html files
-    saveFrrHtml(matrixDfDict, txConfigLabels, dfHash)
-    saveHopDistanceHtml(matrixDfDict, txConfigLabels, dfHash)
-    savePrrHtml(matrixDfDict, txConfigLabels, dfHash)
+    # FRR
+    saveMatricesToHtml(
+        matrixDfDict,
+        txConfigLabels,
+        dfHash,
+        matrixNames=('frr', 'numFloods'),
+        titles=('FRR Matrix', 'Number of Floods'),
+        cmaps=('inferno', 'YlGnBu'),
+        formats=('{:.1f}', '{:.0f}'),
+        applymaps=(lambda x: '', lambda x: 'background: white' if pd.isnull(x) else '')
+    )
+    # hop distance
+    saveMatricesToHtml(
+        matrixDfDict,
+        txConfigLabels,
+        dfHash,
+        matrixNames=('hopDistance', 'numFloodsSucc'),
+        titles=('Hop Distance Matrix (avg rx_idx)', 'Number of Successfully Received Floods'),
+        cmaps=('inferno_r', 'YlGnBu'),
+        formats=('{:.1f}', '{:.0f}'),
+        applymaps=(lambda x: 'background: white' if pd.isnull(x) else '', lambda x: 'background: white' if pd.isnull(x) else '')
+    )
+    # PRR
+    saveMatricesToHtml(
+        matrixDfDict,
+        txConfigLabels,
+        dfHash,
+        matrixNames=('prr', 'numFloods'),
+        titles=('PRR Matrix (num of received floods with rx_idx=0)', 'Number of Floods'),
+        cmaps=('inferno', 'YlGnBu'),
+        formats=('{:.1f}', '{:.0f}'),
+        applymaps=(lambda x: '', lambda x: 'background: white' if pd.isnull(x) else '')
+    )
 
-    ## extract and output graph data
-    evalConnectivity(matrixDfDict, nodeIds, txConfigLabels)
+
+    ## extract and output network graph and connectivity data
+    evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.9)

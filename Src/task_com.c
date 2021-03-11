@@ -38,9 +38,11 @@ void listen_timeout(void)
 void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_packet_t* packet)
 {
   if (initiator_id != NODE_ID) {
+    /* check if schedule packet is valid (there are sporadic cases of SCHED1 packets receptions which have a valid PHY CRC but are not valid elwb packets) */
     if ((elwb_phase == ELWB_PHASE_SCHED1) && !ELWB_IS_SCHEDULE_PACKET(packet)) {
       return;
     }
+
     uint8_t  rx_cnt        = gloria_get_rx_cnt();
     uint8_t  rx_started    = gloria_get_rx_started_cnt();
     uint8_t  rx_idx        = 0;
@@ -118,9 +120,21 @@ void vTask_com(void const * argument)
   gloria_set_band(gloria_band);
 
   /* set elwb config values */
-  elwb_sched_set_period(elwb_period);
-  elwb_set_n_tx(elwb_n_tx);
-  elwb_set_num_hops(elwb_num_hops);
+  if (elwb_sched_set_period(elwb_period)) { // Note: period needs to be larger than max round duration (based on current values of )
+    LOG_INFO("eLWB successfully set period to %lus", elwb_period);
+  } else {
+    LOG_WARNING("eLWB rejects setting period to %lus", elwb_period);
+  }
+  if (elwb_set_n_tx(elwb_n_tx)) {  // Note: Configured period needs to be large enough!
+    LOG_INFO("eLWB successfully set n_tx to %u", elwb_n_tx);
+  } else {
+    LOG_WARNING("eLWB rejects setting n_tx to %u", elwb_n_tx);
+  }
+  if (elwb_set_num_hops(elwb_num_hops)) {  // Note: Configured period needs to be large enough!
+    LOG_INFO("eLWB successfully set num_hops to %u", elwb_num_hops);
+  } else {
+    LOG_WARNING("eLWB rejects setting num_hops to %u", elwb_num_hops);
+  }
 
   /* init eLWB */
   if (!elwb_init(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, xQueueHandle_retransmit, listen_timeout, IS_HOST)) {
@@ -139,16 +153,16 @@ void vTask_com(void const * argument)
            "\"num_hops\":%d,"
            "\"elwb_pkt_len\":%d,"
            "\"elwb_num_slots\":%d,"
-           "\"elwb_period\":%d,"
-           "\"health_msg_period\":%d"
+           "\"elwb_period\":%lu,"
+           "\"health_msg_period\":%lu"
            "}",
     NODE_ID,
     host_id,
     gloria_power,
     gloria_modulation,
     gloria_band,
-    elwb_n_tx,
-    elwb_num_hops,
+    elwb_get_n_tx(),
+    elwb_get_num_hops(),
     ELWB_CONF_MAX_PKT_LEN,
     ELWB_CONF_MAX_DATA_SLOTS,
     elwb_sched_get_period(),

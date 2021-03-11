@@ -25,8 +25,7 @@ fl = Flocklab()
 
 
 ################################################################################
-# TESTDIR = '/home/rtrueb/polybox/PhD/Projects/FlockLab2/flocklab_tests'
-TESTDIR = './data/dataset1/'
+
 
 FSK_MODULATIONS = [8, 9, 10]
 
@@ -242,6 +241,9 @@ def extractImageConfig(testId, testDir=os.getcwd(), imageConfigFromSerial=[]):
 ################################################################################
 
 if __name__ == "__main__":
+    TESTDIR = '/home/rtrueb/polybox/PhD/Projects/FlockLab2/flocklab_tests'
+    # TESTDIR = './data/dataset1/'
+    
     # # check arguments
     # if len(sys.argv) < 2:
     #     print("no test number specified!")
@@ -254,7 +256,8 @@ if __name__ == "__main__":
     # testIdList = [3128, 3129, 3130] # sample dataset
     # testIdList = [3559]
     # testIdList = [3560, 3561, 3562] # dataset debug
-    testIdList = range(3582, 3601+1) # dataset1
+    # testIdList = range(3582, 3601+1) # dataset1
+    testIdList = [3651] # debug
 
     # obtain map to map elwb_phase enum idx to name
     elwbPhases = readTypedefEnum('elwb_phases_t', '../Lib/protocol/elwb/elwb.h', replaceName=('ELWB_PHASE_', ''))
