@@ -23,7 +23,7 @@ static volatile int8_t    gloria_power      = GLORIA_INTERFACE_POWER;
 static volatile uint8_t   gloria_modulation = GLORIA_INTERFACE_MODULATION;
 static volatile uint8_t   gloria_band       = GLORIA_INTERFACE_RF_BAND;
 static volatile uint8_t   elwb_n_tx         = ELWB_CONF_N_TX;
-static volatile uint8_t   elwb_num_hops     = ELWB_NUM_HOPS;
+static volatile uint8_t   elwb_num_hops     = ELWB_CONF_NUM_HOPS;
 static volatile uint32_t  elwb_period       = ELWB_CONF_SCHED_PERIOD;
 
 extern uint32_t           health_msg_period;
@@ -163,7 +163,7 @@ void vTask_com(void const * argument)
     gloria_band,
     elwb_get_n_tx(),
     elwb_get_num_hops(),
-    ELWB_CONF_MAX_PKT_LEN,
+    ELWB_CONF_MAX_PAYLOAD_LEN,
     ELWB_CONF_MAX_DATA_SLOTS,
     elwb_sched_get_period(),
     health_msg_period
