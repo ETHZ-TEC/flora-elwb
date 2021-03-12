@@ -16,12 +16,15 @@ import pickle
 import hashlib
 import re
 
-# network graphs
+# plots
 import networkx as nx
 from bokeh import plotting
-from bokeh.layouts import column
+from bokeh.layouts import column, gridplot
 from bokeh.models import ColumnDataSource, LabelSet, Div
 from bokeh.palettes import Category10_10
+import holoviews as hv
+hv.extension('bokeh')
+from holoviews import opts
 
 # construct html with python
 import dominate
@@ -31,7 +34,7 @@ from dominate.util import raw
 
 ################################################################################
 FSK_MODULATIONS = [8, 9, 10]
-
+PLOT_HEIGHT = 700
 ################################################################################
 # Helper functions/objects
 ################################################################################
@@ -213,7 +216,7 @@ def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95):
 
         ## plot the obtained graph
         configStr = ', '.join(['{}={}'.format(k, v) for k, v in zip(txConfigLabels, txConfig)])
-        plot = plotting.figure(title='txConfig: {}'.format(configStr), x_range=(-1.1,1.1), y_range=(-1.1,1.1), plot_height=700, aspect_ratio=1)
+        plot = plotting.figure(title='txConfig: {}'.format(configStr), x_range=(-1.1,1.1), y_range=(-1.1,1.1), plot_height=PLOT_HEIGHT, aspect_ratio=1)
         pos = nx.circular_layout(g)
         # pos = nx.fruchterman_reingold_layout(g)
         graph = plotting.from_networkx(g, pos, scale=2, center=(0,0))
@@ -251,24 +254,32 @@ def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95):
     nodeDegreeDf['nodeDegreeAvg'] = [np.mean(list(e.values())) for e in nodeDegreeDict.values()]
     nodeDegreeDf['nodeDegreeMax'] = [np.max(list(e.values())) for e in nodeDegreeDict.values()]
     nodeDegreeDf['nodeDegreeMin'] = [np.min(list(e.values())) for e in nodeDegreeDict.values()]
+    nodeDegreeDf['nodeDegreeVals'] = [list(e.values()) for e in nodeDegreeDict.values()]
     # create all plots
     plotList = []
-    aggP = plotting.figure() # aggregated plot
+    aggP = plotting.figure(plot_height=PLOT_HEIGHT, plot_width=PLOT_HEIGHT) # aggregated plot
     color = Category10_10.__iter__()
     for modulation, groupDf in nodeDegreeDf.groupby(by=['modulation']):
         source = ColumnDataSource(groupDf)
+        ## aggregated plot (avg only)
         col = next(color)
         aggP.line(x='tx_power', y='nodeDegreeAvg', source=source, legend_label='modulation={}'.format(modulation), line_color=col, )
         aggP.circle(x='tx_power', y='nodeDegreeAvg', source=source, legend_label='modulation={}'.format(modulation), color=col)
-        p = plotting.figure()
-        p.varea(x='tx_power', y1='nodeDegreeMin', y2='nodeDegreeMax', source=source, level='underlay', fill_alpha=0.3)
-        p.line(x='tx_power', y='nodeDegreeAvg', line_color='black', source=source)
-        p.circle(x='tx_power', y='nodeDegreeAvg', color='black', line_color='black', source=source)
-        p.title.text = "Node Degree (modulation={})".format(modulation)
-        p.xgrid[0].grid_line_color=None
-        p.ygrid[0].grid_line_alpha=0.5
+        ## violing plots
+        # violin plot requires list keys and values (list of list is does not work out-of-the-box)
+        kList = []
+        vList = []
+        for idx, row in groupDf.iterrows():
+            kList += [row['tx_power']] * len(row['nodeDegreeVals'])
+            vList += row['nodeDegreeVals']
+        hp = hv.Violin((kList, vList), kdims='tx_power', vdims='nodeDegreeVals')
+        hp.opts(title="Node Degree (modulation={})".format(modulation))
+        hp.opts(opts.Violin(inner='stick', cut=0.1, bandwidth=0.1))
+        p = hv.render(hp)
+        p.plot_height=PLOT_HEIGHT
+        p.plot_width=PLOT_HEIGHT
         p.xaxis.axis_label = 'tx_power config [dBm]'
-        p.yaxis.axis_label = 'Node Degree (min/avg/max)'
+        p.yaxis.axis_label = 'Node Degree'
         plotList.append(p)
     aggP.title.text = 'Node Degree (all modulations, avg only)'
     aggP.xgrid[0].grid_line_color=None
@@ -282,7 +293,7 @@ def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95):
     os.makedirs(os.path.split(htmlPath)[0], exist_ok=True)
     plotting.output_file(htmlPath)
     infoDiv = Div(text='prrThreshold={}'.format(prrThreshold))
-    plotting.save(column([infoDiv, aggP] + plotList))
+    plotting.save(column([infoDiv, gridplot([aggP] + plotList, ncols=2)]))
 
 
 ################################################################################
@@ -354,4 +365,4 @@ if __name__ == "__main__":
 
 
     ## extract and output network graph and connectivity data
-    evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.9)
+    evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95)
