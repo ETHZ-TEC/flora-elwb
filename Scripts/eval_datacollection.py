@@ -11,7 +11,7 @@ import sys
 import os
 import numpy as np
 import pandas as pd
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 import pickle
 import hashlib
 import re
@@ -150,7 +150,7 @@ def extractConnectionData(df, txConfigLabels):
     return matrixDfDict
 
 
-def saveMatricesToHtml(matrixDfDict, xConfigLabels, dfHash, matrixNames, titles, cmaps, formats, applymaps=None):
+def saveMatricesToHtml(matrixDfDict, xConfigLabels, dfHash, matrixNames, titles, cmaps, formats, applymaps=None, outputDir='data'):
     h = html()
     if applymaps is None:
         applymaps = (lambda x: '', lambda x: '')
@@ -184,12 +184,12 @@ def saveMatricesToHtml(matrixDfDict, xConfigLabels, dfHash, matrixNames, titles,
                     td(cls="outer")
                     td(raw(html1), cls='outer')
 
-    htmlPath = './data/{}_{}.html'.format(matrixNames[0], dfHash[:8])
+    htmlPath = os.path.join(outputDir, '{}_{}.html'.format(matrixNames[0], dfHash[:8]))
     os.makedirs(os.path.split(htmlPath)[0], exist_ok=True)
     with open(htmlPath,"w") as fp:
        fp.write(h.render())
 
-def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95):
+def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95, outputDir='data'):
     print('==== evalConnectivity ====')
     plotDict = {}
     nodeDegreeDict = {}
@@ -240,7 +240,7 @@ def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95):
         print('nodeDegree: min={:.2f}, mean={:.2f}, max={:.2f}'.format(np.min(vals), np.mean(vals), np.max(vals)))
 
     # save all network graphs to html
-    htmlPath = './data/prr_connectivity_graph_{}.html'.format(dfHash[:8])
+    htmlPath = os.path.join(outputDir, 'prr_connectivity_graph_{}.html'.format(dfHash[:8]))
     os.makedirs(os.path.split(htmlPath)[0], exist_ok=True)
     plotting.output_file(htmlPath)
     infoDiv = Div(text='prrThreshold={}'.format(prrThreshold))
@@ -289,8 +289,8 @@ def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95):
     aggP.legend.location = "top_left"
     aggP.legend.click_policy="hide"
     # plot all plots to a single HTML file
-    htmlPath = './data/prr_connectivity_nodeDegree_{}.html'.format(dfHash[:8])
-    os.makedirs(os.path.split(htmlPath)[0], exist_ok=True)
+    htmlPath = os.path.join(outputDir, 'prr_connectivity_nodeDegree_{}.html'.format(dfHash[:8]))
+    os.makedirs(outputDir, exist_ok=True)
     plotting.output_file(htmlPath)
     infoDiv = Div(text='prrThreshold={}'.format(prrThreshold))
     plotting.save(column([infoDiv, gridplot([aggP] + plotList, ncols=2)]))
@@ -311,7 +311,11 @@ if __name__ == "__main__":
     # datasetFile = sys.argv[1]
 
     # datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/flood_dataset_3562_3f8d4e67.zip'
-    datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/flood_dataset_3601_7c8def8b.zip'
+    # datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/flood_dataset_3601_7c8def8b.zip'
+    # datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/sample_dataset/flood_dataset_3130_43841b6f.zip'
+    # datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/dataset1/flood_dataset_3601_7814960e.zip'
+    datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/dataset2/flood_dataset_3965_0bbe0f03.zip'
+    outputDir = os.path.split(datasetFile)[0]
 
     # load data from dataset
     df = pd.read_pickle(datasetFile)
@@ -320,6 +324,14 @@ if __name__ == "__main__":
     # get all node IDs
     nodeIds = [int(e) for e in sorted(df.node_id.unique())] # explicitely convert to python int since bokeh from_networkx does not work with int64
     numNodes = len(nodeIds)
+
+    # overview of available data
+    print('==== Overview of available data ====')
+    for modulation, grp in df.groupby(by=['modulation']):
+        print('== modulation={} =='.format(modulation))
+        c = Counter(grp.test_id.to_list())
+        for k, v in dict(c).items():
+            print('Test {}: {:>10} rows'.format(k, v))
 
     # define txConfig labels which are used for grouping the results
     txConfigLabels = ['modulation', 'tx_power', 'n_tx', 'num_hops']
@@ -338,7 +350,8 @@ if __name__ == "__main__":
         titles=('FRR Matrix', 'Number of Floods'),
         cmaps=('inferno', 'YlGnBu'),
         formats=('{:.1f}', '{:.0f}'),
-        applymaps=(lambda x: '', lambda x: 'background: white' if pd.isnull(x) else '')
+        applymaps=(lambda x: '', lambda x: 'background: white' if pd.isnull(x) else ''),
+        outputDir=outputDir,
     )
     # hop distance
     saveMatricesToHtml(
@@ -349,7 +362,8 @@ if __name__ == "__main__":
         titles=('Hop Distance Matrix (avg rx_idx)', 'Number of Successfully Received Floods'),
         cmaps=('inferno_r', 'YlGnBu'),
         formats=('{:.1f}', '{:.0f}'),
-        applymaps=(lambda x: 'background: white' if pd.isnull(x) else '', lambda x: 'background: white' if pd.isnull(x) else '')
+        applymaps=(lambda x: 'background: white' if pd.isnull(x) else '', lambda x: 'background: white' if pd.isnull(x) else ''),
+        outputDir=outputDir,
     )
     # PRR
     saveMatricesToHtml(
@@ -360,9 +374,10 @@ if __name__ == "__main__":
         titles=('PRR Matrix (num of received floods with rx_idx=0)', 'Number of Floods'),
         cmaps=('inferno', 'YlGnBu'),
         formats=('{:.1f}', '{:.0f}'),
-        applymaps=(lambda x: '', lambda x: 'background: white' if pd.isnull(x) else '')
+        applymaps=(lambda x: '', lambda x: 'background: white' if pd.isnull(x) else ''),
+        outputDir=outputDir,
     )
 
 
     ## extract and output network graph and connectivity data
-    evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95)
+    evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95, outputDir=outputDir)

@@ -16,6 +16,7 @@ from collections import OrderedDict
 import pickle
 import re
 import hashlib
+import tarfile
 
 from flocklab import Flocklab
 from flocklab import *
@@ -35,7 +36,7 @@ imageConfigToMacro = {
     'modulation': 'GLORIA_INTERFACE_MODULATION',
     'rf_band': 'GLORIA_INTERFACE_RF_BAND',
     'n_tx': 'ELWB_CONF_N_TX',
-    'num_hops': 'ELWB_NUM_HOPS',
+    'num_hops': 'ELWB_CONF_NUM_HOPS',
 }
 
 imageConfigToGlobalVar = {
@@ -60,24 +61,27 @@ def getDfHash(df):
     l = np.append(colsArray, dfValuesArray)
     return hashlib.sha256(l).hexdigest()
 
-def getJson(text):
+def getJson(text, obsId=None):
     '''Find an convert json in a single line from serial output. Returns None if no valid json could be found.
     '''
-    ret = None
+    retJson = None
+    retJsonParsingFailed = False
     # find index
-    idx = 0
-    if not '{' in text:
-        return ret
+    idx = None
     for i in range(len(text)):
         if text[i] == '{':
             idx = i
             break
 
-    try:
-        ret =  json.loads(text[idx:], strict=False)
-    except json.JSONDecodeError:
-        print('WARNING: json could not be parsed: {}'.format(text[idx:]))
-    return ret
+    if not idx is None:
+        try:
+            retJson =  json.loads(text[idx:], strict=False)
+        except json.JSONDecodeError:
+            nodeText = ' ( observer {})'.format(obsId) if (not obsId is None) else ''
+            retJsonParsingFailed = True
+            print('WARNING: json could not be parsed{}: {}'.format(nodeText, text[idx:]))
+
+    return retJson, retJsonParsingFailed
 
 
 def readTypedefEnum(typeName, filePath, replaceName=None):
@@ -122,9 +126,22 @@ def readTypedefEnum(typeName, filePath, replaceName=None):
 ################################################################################
 
 def extractData(testId, testDir=os.getcwd()):
-    df, imageConfigFromSerial = extractSerialData(testId, testDir)
-    imageConfig = extractImageConfig(testId, testDir, imageConfigFromSerial)
+    # directly read file from archive (without extracting to a file)
+    archivePath = os.path.join(testDir, 'flocklab_testresults_{}.tar.gz'.format(testId))
+    with tarfile.open(archivePath) as tar:
+        # find correct file in archive
+        serialFile = None
+        testconfigFile = None
+        for fn in tar.getnames():
+            if 'testconfig.xml' in fn:
+                testconfigFile = fn
+            elif 'serial.csv' in fn:
+                serialFile = fn
 
+        df, imageConfigFromSerial = extractSerialData(tar.extractfile(tar.getmember(serialFile)))
+        imageConfig = extractImageConfig(tar.extractfile(tar.getmember(testconfigFile)), imageConfigFromSerial)
+
+    # add image config to df
     df['test_id'] = testId
     for k, v in imageConfig.items():
         df[k] = v
@@ -136,26 +153,38 @@ def extractData(testId, testDir=os.getcwd()):
 
     return df
 
-def extractSerialData(testId, testDir=os.getcwd()):
-    serialPath = os.path.join(testDir, "{}/serial.csv".format(testId))
-
-    # # download test results if directory does not exist
-    # if not os.path.isfile(serialPath):
-    #     fl.getResults(testId)
-
-    df = fl.serial2Df(serialPath, error='ignore')
+def extractSerialData(serialFile):
+    df = fl.serial2Df(serialFile, error='ignore')
     df.sort_values(by=['timestamp', 'observer_id'], inplace=True, ignore_index=True)
 
     # convert output with valid json to dict and remove other rows
-    keepMask = []
+    keepList = []
+    failedList = []
     resList = []
     for idx, row in df.iterrows():
-        jsonDict = getJson(row['output'])
-        keepMask.append(1 if jsonDict else 0)
+        jsonDict, jsonFailed = getJson(row['output'], row['observer_id'])
+        keepList.append(1 if jsonDict else 0)
+        failedList.append(1 if jsonFailed else 0)
         if jsonDict:
             resList.append(jsonDict)
-    dfd = df[np.asarray(keepMask).astype(bool)].copy()
+    keepMask = np.asarray(keepList).astype(bool)
+    dfd = df[keepMask].copy()
     dfd['data'] = resList
+    failedMask = np.asarray(failedList).astype(bool)
+    dfdFailed = df[failedMask]
+    timeSpan = dfdFailed.timestamp.max() - dfdFailed.timestamp.min()
+    if len(dfdFailed):
+        print('A total of {} out of {} json-like rows spanning {:0.1f}s could not be parsed as JSON!'.format(len(dfdFailed), len(dfd)+len(dfdFailed), timeSpan))
+    # # DEBUG
+    # import matplotlib.pyplot as plt
+    # plt.close('all')
+    # fig, ax = plt.subplots()
+    # tRef = df.timestamp.min()
+    # ax.hist(dfdFailed.timestamp.to_numpy() - tRef, bins=50)
+    # ax.axvline(df.timestamp.min() - tRef, c='k')
+    # ax.axvline(df.timestamp.max() - tRef, c='k')
+    # ax.set_xlabel('Time')
+    # ax.set_ylabel('Count')
 
     # figure out list of nodes available in the serial trace
     nodeList = list(set(dfd.observer_id))
@@ -168,6 +197,7 @@ def extractSerialData(testId, testDir=os.getcwd()):
     imageConfigDf = dfd[['node_id' in e.keys() for e in dfd.data]]
     floodRxDf = dfd[['rx_cnt' in e.keys() for e in dfd.data]]
     # sanity checks
+    diffDf = dfd[np.logical_and([not 'node_id' in e.keys() for e in dfd.data], [not 'rx_cnt' in e.keys() for e in dfd.data])]
     assert len(imageConfigDf) + len(floodRxDf) == len(dfd)
     for idx, row in imageConfigDf.iterrows():
         assert row['observer_id'] == row['data']['node_id']
@@ -199,12 +229,12 @@ def extractSerialData(testId, testDir=os.getcwd()):
     return floodRxDfNew, imageConfigDf.data.tolist()
 
 
-def extractImageConfig(testId, testDir=os.getcwd(), imageConfigFromSerial=[]):
+def extractImageConfig(testconfigFile, imageConfigFromSerial=[]):
     imageConfig = {}
     if not imageConfigFromSerial:
-        print('Reading imageConfig from custom field of testconfig xml...')
         ## old way to pass imageConfig (via custom field of xml test config); for backwards compatibility
-        customText = fl.get_custom_field(os.path.join(testDir, str(testId)))
+        print('Reading imageConfig from custom field of testconfig xml...')
+        customText = fl.getCustomField(testconfigFile)
         try:
             custom = json.loads(customText)
         except Exception as e:
@@ -241,9 +271,6 @@ def extractImageConfig(testId, testDir=os.getcwd(), imageConfigFromSerial=[]):
 ################################################################################
 
 if __name__ == "__main__":
-    TESTDIR = '/home/rtrueb/polybox/PhD/Projects/FlockLab2/flocklab_tests'
-    # TESTDIR = './data/dataset1/'
-    
     # # check arguments
     # if len(sys.argv) < 2:
     #     print("no test number specified!")
@@ -251,13 +278,40 @@ if __name__ == "__main__":
     # # obtain list of tests
     # testIdList = map(int, sys.argv[1:])
 
+
+    # testDir = '/home/rtrueb/polybox/PhD/Projects/FlockLab2/flocklab_tests'
     # testIdList = [3048, 3077]
     # testIdList = [3081, 3082]
-    # testIdList = [3128, 3129, 3130] # sample dataset
     # testIdList = [3559]
     # testIdList = [3560, 3561, 3562] # dataset debug
-    # testIdList = range(3582, 3601+1) # dataset1
-    testIdList = [3651] # debug
+    
+    # sample dataset
+    # testIdList = [3128, 3129, 3130] 
+
+    # # dataset1
+    # testDir = './data/dataset1/'
+    # testIdList = range(3582, 3601+1)
+
+    # dataset2
+    testDir = './data/dataset2/'
+    testIdList =  []
+    testIdList += list(range(3823, 3842+1))
+    for tId in [3826, 3837]: testIdList.remove(tId) # many rows with corrupte chars in serial log
+    testIdList += list(range(3912, 3943+1))
+    testIdList.remove(3918) # 4 non-parsable json rows
+    testIdList.remove(3926) # test failed to run
+    testIdList += list(range(3947, 3958+1))
+    testIdList.remove(3952) # 1 non-parsable json row
+    testIdList += [3965] # rerun of 3952
+
+    # # debug dataset2
+    # testIdList = [3826] # tx_power=-9, modulation=8, serial corrupted
+    # testIdList = [3837] # tx_power=9, modulation=10, serial corrupted
+    # testIdList = range(3860, 3865+1)
+    # testIdList = range(3880, 3883+1)
+
+    # ensure dir for storing tests exists
+    os.makedirs(testDir, exist_ok=True)
 
     # obtain map to map elwb_phase enum idx to name
     elwbPhases = readTypedefEnum('elwb_phases_t', '../Lib/protocol/elwb/elwb.h', replaceName=('ELWB_PHASE_', ''))
@@ -268,12 +322,12 @@ if __name__ == "__main__":
         print('===== testId={} ====='.format(testId))
 
         # download test results if not available already
-        if not os.path.isdir(os.path.join(TESTDIR, str(testId))):
+        if not os.path.isfile(os.path.join(testDir, 'flocklab_testresults_{}.tar.gz'.format(testId))):
             print('Downloading FL2 test {}'.format(testId))
-            fl.getResults(testId, TESTDIR)
+            fl.getResults(testId, testDir, extract=False)
 
         # extract data from serial.csv and testconfig.xml
-        df = extractData(testId, testDir=TESTDIR)
+        df = extractData(testId, testDir=testDir)
 
         # map elwb_phase enum idx to names
         df['elwb_phase_mapped'] = df.elwb_phase.map(lambda x: elwbPhases[x])
@@ -317,12 +371,15 @@ if __name__ == "__main__":
     print('===== hexHash =====')
     print(dfHash)
 
+    outputDir = './data/' if 'flocklab_tests' in testDir else os.path.split(testDir)[0]
+    fileName = 'flood_dataset_{maxTestId}_{hash}.{{ext}}'.format(maxTestId=max(testIdList), hash=dfHash[:8])
+
     # save data to file
-    dfDataset.to_csv(
-        path_or_buf='./data/flood_dataset_{}_{}.csv'.format(max(testIdList), dfHash[:8]),
-        index=False,
-        header=True,
-    )
+    # dfDataset.to_csv(
+    #     path_or_buf=path=os.path.join(outputDir, fileName.format(ext='csv'),
+    #     index=False,
+    #     header=True,
+    # )
     dfDataset.to_pickle(
-        path='./data/flood_dataset_{}_{}.zip'.format(max(testIdList), dfHash[:8]),
+        path=os.path.join(outputDir, fileName.format(ext='zip')),
     )

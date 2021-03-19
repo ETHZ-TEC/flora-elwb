@@ -14,6 +14,7 @@ import json
 import git
 import itertools
 from collections import OrderedDict
+import argparse
 
 from flocklab import Flocklab
 from flocklab import *
@@ -73,7 +74,7 @@ def readAllConfig():
     ret['GLORIA_INTERFACE_MODULATION'] = readConfig('GLORIA_INTERFACE_MODULATION')
     ret['GLORIA_INTERFACE_RF_BAND'] = readConfig('GLORIA_INTERFACE_RF_BAND')
     ret['ELWB_CONF_N_TX'] = readConfig('ELWB_CONF_N_TX')
-    ret['ELWB_NUM_HOPS'] = readConfig('ELWB_NUM_HOPS')
+    ret['ELWB_CONF_NUM_HOPS'] = readConfig('ELWB_CONF_NUM_HOPS')
     ret['ELWB_CONF_SCHED_PERIOD'] = readConfig('ELWB_CONF_SCHED_PERIOD')
     ret['ELWB_CONF_DATA_ACK'] = readConfig('ELWB_CONF_DATA_ACK')
     ret['ELWB_CONF_MAX_NODES'] = readConfig('ELWB_CONF_MAX_NODES')
@@ -211,43 +212,53 @@ def create_test(duration, imagePatchingDict=None):
     fc.generalConf.custom = json.dumps(custom, separators=(',', ':'))
     fc.generateXml(xmlPath=xmlPath)
 
-def run_test():
-    # Prompt for scheduling the flocklab test
-    inp = input("Submit FlockLab test to FlockLab Server? [y/N]: ")
-    if inp == 'y':
-        print(fl.createTestWithInfo(xmlPath))
+def run_test(prompt=True):
+    if prompt:
+        # Prompt for scheduling the flocklab test
+        inp = input("Submit FlockLab test to FlockLab Server? [y/N]: ")
+        if inp == 'y':
+            print(fl.createTestWithInfo(xmlPath))
+        else:
+            print('=====> Test NOT submitted!')
     else:
-        print('=====> Test NOT submitted!')
+        print(fl.createTestWithInfo(xmlPath))
 
 
 if __name__ == "__main__":
-    # hostIdList = [2, 3, 10, 25]
-    # pwrList = [-9, 0, 9, 14]
-    # modulationList = [1, 5, 7, 8, 10]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-y', '--noprompt', help='Run without prompting', action='store_true', default=False)
+    args = parser.parse_args()
 
-    # hostIdList = [2]
+    # hostIdList = [2, 3, 10, 25]
+    # pwrList = [-9, -4, 0, 4, 9, 14]
+    # modulationList = [1, 3, 5, 7, 8, 10]
+
+    # hostIdList = [3]
     # pwrList = [-9, 0, 9, 14]
     # modulationList = [3, 5, 7, 8, 10]
 
-    hostIdList = [2]
-    pwrList = [0]
-    modulationList = [1]
+    # hostIdList = [3]
+    # pwrList = [-4, 4]
+    # modulationList = [3, 5, 7, 8, 10]
+
+    hostIdList = [3]
+    pwrList = [-4]
+    modulationList = [8]
 
     # for num_hops=6
     mod2period = {
         10: 5,
         9: 5,
         8: 5,
-        7: 16,
-        5: 48,
-        3: 150,
-        2: 300,
-        1: 625,
-        # 1: 360 (num_hops=3)
+        7: 19,
+        5: 54,
+        3: 177,
+        2: 332,
+        1: 703,
     }
 
-    # duration = 5*60 + 30
-    duration = 60
+    duration = 5*60 + 30
+    # duration = 2*60
     # duration = mod2period[modulationList[0]] + 10
 
     for config in itertools.product(hostIdList, pwrList, modulationList):
@@ -258,13 +269,11 @@ if __name__ == "__main__":
             'gloria_modulation': modulation,
             # 'gloria_band': 2,
             # 'elwb_n_tx': 3,
-            'elwb_num_hops': 3,
-            'elwb_period': 360,
-            'health_msg_period': 360,
-            # 'elwb_period': mod2period[modulation],
-            # 'health_msg_period': mod2period[modulation],
+            # 'elwb_num_hops': 3,
+            'elwb_period': mod2period[modulation],
+            'health_msg_period': mod2period[modulation],
         }
 
         create_test(duration, binaryPatchingDict)
         # create_test(duration) # without binary patching
-        run_test()
+        run_test(prompt=not(args.noprompt))
