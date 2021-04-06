@@ -35,6 +35,8 @@ void listen_timeout(void)
 }
 
 
+#if COLLECT_FLOODING_DATA
+
 void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_packet_t* packet)
 {
   if (initiator_id != NODE_ID) {
@@ -93,6 +95,8 @@ void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_p
   }
 }
 
+#endif /* COLLECT_FLOODING_DATA */
+
 
 /* communication task */
 void vTask_com(void const * argument)
@@ -140,6 +144,7 @@ void vTask_com(void const * argument)
   if (!elwb_init(xTaskGetCurrentTaskHandle(), xTaskHandle_pre, xTaskHandle_post, xQueueHandle_rx, xQueueHandle_tx, xQueueHandle_retransmit, listen_timeout, IS_HOST)) {
     FATAL_ERROR("eLWB init failed");
   }
+#if COLLECT_FLOODING_DATA
   elwb_register_slot_callback(collect_radio_stats);
 
   /* print config in json format */
@@ -168,6 +173,7 @@ void vTask_com(void const * argument)
     elwb_sched_get_period(),
     health_msg_period
   );
+#endif /* COLLECT_FLOODING_DATA */
 
   /* start eLWB */
   elwb_start();

@@ -54,6 +54,7 @@
 
 /* data collection config */
 #define NODE_HEALTH_MSG_PERIOD          15   /* in seconds */
+#define COLLECT_FLOODING_DATA           0
 
 /* memory */
 #define PRE_TASK_STACK_SIZE             256                             /* in # words of 4 bytes */

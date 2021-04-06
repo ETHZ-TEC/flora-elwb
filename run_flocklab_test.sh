@@ -37,7 +37,7 @@ XMLTEMPLATE=$(cat <<- END
     <!-- Serial Service configuration -->
     <serialConf>
         <obsIds>2 3 4 5 6</obsIds>
-        <baudrate>1000000</baudrate>
+        <baudrate>460800</baudrate>
     </serialConf>
 
     <gpioTracingConf>
