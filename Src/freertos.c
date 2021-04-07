@@ -109,7 +109,7 @@ void vApplicationIdleHook( void )
   }
 
   /* if the application ends up in the RESET state, something went wrong -> reset the MCU */
-  if (get_opmode() == OP_MODE_RESET) {
+  if (lpm_get_opmode() == OP_MODE_RESET) {
     NVIC_SystemReset();
   }
 
@@ -150,6 +150,8 @@ void vApplicationMallocFailedHook(void)
 /* USER CODE BEGIN PREPOSTSLEEP */
 void PreSleepProcessing(uint32_t *ulExpectedIdleTime)
 {
+  /* interrupts are disabled within this function */
+
   /* note: for tickless idle, the HAL tick needs to be suspended! */
   lpm_prepare();
 
@@ -160,6 +162,8 @@ void PreSleepProcessing(uint32_t *ulExpectedIdleTime)
 
 void PostSleepProcessing(uint32_t *ulExpectedIdleTime)
 {
+  /* interrupts are disabled within this function */
+
   CPU_ON_IND();
   wakeup_timestamp = lptimer_now();    /* reset duty cycle timer */
 

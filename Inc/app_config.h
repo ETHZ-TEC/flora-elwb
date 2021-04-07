@@ -95,7 +95,7 @@
 #define ELWB_CONF_MAX_PAYLOAD_LEN       80
 #define ELWB_CONF_MAX_NODES             30
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES
-#define ELWB_ON_WAKEUP()                update_opmode(OP_MODE_EVT_WAKEUP)
+#define ELWB_ON_WAKEUP()                lpm_update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_CONF_T_PREPROCESS          ELWB_MS_TO_TICKS(50)
 #define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32  /* nodes to pre-register in the scheduler, also include HOST_ID here! */
 

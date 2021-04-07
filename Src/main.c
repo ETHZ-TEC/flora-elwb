@@ -105,6 +105,31 @@ void load_config(void)
     LOG_ERROR("failed to save config");
   }
 }
+
+bool deepsleep_prepare(void)
+{
+#if BOLT_ENABLE
+  /* configure BOLT TREQ in EXTI mode */
+  GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+  GPIO_InitStruct.Pin = COM_TREQ_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  HAL_GPIO_Init(COM_TREQ_GPIO_Port, &GPIO_InitStruct);
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+#endif /* BOLT_ENABLE */
+
+  return true;
+}
+
+void deepsleep_wakeup(void)
+{
+#if BOLT_ENABLE
+  /* disable BOLT TREQ EXTI */
+  HAL_NVIC_DisableIRQ(EXTI3_IRQn);
+  __HAL_GPIO_EXTI_CLEAR_IT(COM_TREQ_Pin);
+#endif /* BOLT_ENABLE */
+}
 /* USER CODE END 0 */
 
 /**
@@ -164,7 +189,7 @@ int main(void)
   system_init();
 
   /* initialize state machine for handling low-power modes */
-  update_opmode(OP_MODE_EVT_INIT);
+  lpm_init(deepsleep_prepare, deepsleep_wakeup);
 
   /* USER CODE END 2 */
 

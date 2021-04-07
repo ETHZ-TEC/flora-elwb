@@ -169,6 +169,6 @@ void vTask_post(void const * argument)
 #endif /* LOG_USE_DMA */
 
     /* round finished, prepare for low-power mode */
-    update_opmode(OP_MODE_EVT_DONE);
+    lpm_update_opmode(OP_MODE_EVT_DONE);
   }
 }

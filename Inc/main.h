@@ -55,35 +55,6 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
-typedef enum
-{
-  OP_MODE_RESET,            /* initial state after a reset */
-  OP_MODE_ACTIVE,           /* default mode, running */
-  OP_MODE_IDLE,             /* nothing to do, ready for LPM entry */
-  OP_MODE_LPM,              /* in LPM */
-  OP_MODE_WOKEN,            /* woken up, waiting for restore of MCU config */
-  NUM_OP_MODES,
-} op_mode_t;
-
-typedef enum
-{
-  OP_MODE_EVT_INIT,         /* initialization done */
-  OP_MODE_EVT_WAKEUP,       /* wakeup trigger occurred */
-  OP_MODE_EVT_DONE,         /* communication round finished */
-  OP_MODE_EVT_STOPPED,      /* everything turned off, prepared for LPM */
-  OP_MODE_EVT_RESTORED,     /* config restored */
-  NUM_OP_MODE_EVENTS,
-} op_mode_event_t;
-
-typedef enum
-{
-  LP_MODE_SLEEP,            /* Sleep Mode */
-  LP_MODE_STOP2,            /* Stop2 */
-  LP_MODE_STANDBY,          /* Standby Mode */
-  LP_MODE_SHUTDOWN,         /* Shutdown Mode */
-  NUM_LP_MODES,
-} lp_mode_t;
-
 /* note: size must be equal to NVCFG_BLOCK_SIZE! */
 typedef struct
 {
@@ -134,14 +105,8 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
-op_mode_t get_opmode(void);                     /* get application state (operating mode) */
-void      update_opmode(op_mode_event_t evt);   /* update application state (operating mode) */
-
 void      set_master_timestamp(uint64_t ts_us);
 uint64_t  get_master_timestamp(void);
-
-void      lpm_prepare(void);
-void      lpm_resume(void);
 
 void      rtos_init(void);
 uint32_t  rtos_get_cpu_dc(void);     /* get duty cycle */
