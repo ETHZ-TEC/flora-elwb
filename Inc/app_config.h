@@ -19,7 +19,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                2           /* 0..99 */
-#define FW_VERSION_PATCH                4           /* 0..99 */
+#define FW_VERSION_PATCH                5           /* 0..99 */
 
 #define FLOCKLAB                        1           /* set to 1 to run on FlockLab */
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */

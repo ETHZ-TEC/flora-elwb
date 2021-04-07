@@ -11,6 +11,14 @@
 
 /*
 
+v0.2.5
+- minor code refactoring
+- data collection updated
+
+v0.2.4
+- data collection added
+- several bugfixes in eLWB protocol
+
 v0.2.3
 - minor bugfixes (startup phase, sx1262 image calibration)
 - schedule init moved to elwb_init()

@@ -1,11 +1,38 @@
 /*
- * message.c
+ * Copyright (c) 2020, Swiss Federal Institute of Technology (ETH Zurich).
+ * All rights reserved.
  *
- *  Created on: Apr 7, 2020
- *      Author: rdaforno
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived
+ *    from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE
+ * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* functions related to DPP message handling */
+/*
+ * message.c
+ *
+ * DPP message processing
+ */
 
 #include "main.h"
 
@@ -33,11 +60,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
   uint16_t msg_len = DPP_MSG_LEN(msg);
 
   /* check message type, length and CRC */
-  if (msg->header.type & DPP_MSG_TYPE_MIN ||
-      msg_len > DPP_MSG_PKT_LEN           ||
-      msg_len < (DPP_MSG_HDR_LEN + 2)     ||
-      msg->header.payload_len == 0        ||
-      DPP_MSG_GET_CRC16(msg) != crc16((uint8_t*)msg, msg_len - 2, 0)) {
+  if (ps_validate_msg(msg)) {
     LOG_ERROR("msg with invalid length or CRC (sender %u, len %ub, type 0x%x)", msg->header.device_id, msg_len, msg->header.type);
     EVENT_WARNING(EVENT_SX1262_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
     return 1;
@@ -136,7 +159,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         }
         config.bb_en.period = (uint32_t)msg->cmd.arg16[1] * 60;  /* convert to seconds */
         if (config.bb_en.period > 0) {
-          config.bb_en.starttime = get_next_timestamp_at_daytime(0, msg->cmd.arg[0], msg->cmd.arg[1], 0);
+          config.bb_en.starttime = rtc_get_next_timestamp_at_daytime(elwb_get_time_sec(), msg->cmd.arg[0], msg->cmd.arg[1], 0);
           if (config.bb_en.starttime > 0) {
             LOG_INFO("periodic baseboard enable scheduled (next: %u, period: %us)", config.bb_en.starttime, config.bb_en.period);
           } else {
@@ -275,42 +298,18 @@ uint_fast8_t send_message(uint16_t recipient,
     return 0;
   }
 
-  /* compose the message header */
-  msg_buffer.header.device_id   = NODE_ID;
-  msg_buffer.header.type        = type;
-  msg_buffer.header.payload_len = len;
-  if (!len) {
-    switch(type) {
-    case DPP_MSG_TYPE_COM_HEALTH:
-      msg_buffer.header.payload_len = sizeof(dpp_com_health_t); break;
-    case DPP_MSG_TYPE_CMD:
-      msg_buffer.header.payload_len = 6; break;  /* default is 6 bytes */
-    case DPP_MSG_TYPE_EVENT:
-      msg_buffer.header.payload_len = sizeof(dpp_event_t); break;
-    case DPP_MSG_TYPE_NODE_INFO:
-      msg_buffer.header.payload_len = sizeof(dpp_node_info_t); break;
-    case DPP_MSG_TYPE_TIMESYNC:
-      msg_buffer.header.payload_len = sizeof(dpp_timestamp_t); break;
-    default:
-      break;
+  uint8_t msg_buffer_len = ps_compose_msg(recipient, type, data, len, &msg_buffer);
+  if (!msg_buffer_len) {
+    return 0;
+  }
+  if ((type & DPP_MSG_TYPE_MIN) == 0) {
+    if (send_to_bolt) {
+      msg_buffer.header.seqnr = seq_no_bolt++;
+    } else {
+      msg_buffer.header.seqnr = seq_no_lwb++;
     }
+    ps_update_msg_crc(&msg_buffer);
   }
-  msg_buffer.header.target_id = recipient;
-  if (send_to_bolt) {
-    msg_buffer.header.seqnr = seq_no_bolt++;
-  } else {
-    msg_buffer.header.seqnr = seq_no_lwb++;
-  }
-  msg_buffer.header.generation_time = elwb_get_time(0);
-
-  /* copy the payload if valid */
-  if (msg_buffer.header.payload_len && data) {
-    memcpy(msg_buffer.payload, data, msg_buffer.header.payload_len);
-  }
-  /* calculate and append the CRC */
-  uint16_t msg_buffer_len = DPP_MSG_LEN(&msg_buffer);
-  uint16_t crc = crc16((uint8_t*)&msg_buffer, msg_buffer_len - 2, 0);
-  DPP_MSG_SET_CRC16(&msg_buffer, crc);
 
   /* forward the message either to BOLT or the eLWB */
   if (send_to_bolt) {
@@ -465,26 +464,3 @@ void set_event_target(event_msg_target_t target)
   event_msg_target = target;
 }
 
-uint32_t get_next_timestamp_at_daytime(time_t curr_time, uint32_t hour, uint32_t minute, uint32_t second)
-{
-  struct tm ts;
-
-  /* make sure the values are within the valid range */
-  if (hour > 23 || minute > 59 || second > 59) {
-    return 0;
-  }
-  if (curr_time == 0) {
-    curr_time = (time_t)elwb_get_time_sec();
-  }
-  /* split up the UNIX timestamp into components */
-  gmtime_r(&curr_time, &ts);
-  ts.tm_hour = hour;
-  ts.tm_min  = minute;
-  ts.tm_sec  = second;
-  /* convert back to UNIX timestamp */
-  uint32_t timestamp = mktime(&ts);
-  if (timestamp <= curr_time) {
-    timestamp += 86400;           /* add one day */
-  }
-  return timestamp;
-}
