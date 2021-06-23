@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Swiss Federal Institute of Technology (ETH Zurich).
+ * Copyright (c) 2020 - 2021, ETH Zurich, Computer Engineering Group (TEC)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,6 @@
  */
 
 /*
- * message.c
- *
  * DPP message processing
  */
 
