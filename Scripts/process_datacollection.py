@@ -305,38 +305,11 @@ if __name__ == "__main__":
     #     sys.exit(1)
     # # obtain list of tests
     # testIdList = map(int, sys.argv[1:])
+    # testDir = '.'
 
-
-    # testDir = '/home/rtrueb/polybox/PhD/Projects/FlockLab2/flocklab_tests'
-    # testIdList = [3048, 3077]
-    # testIdList = [3081, 3082]
-    # testIdList = [3559]
-    # testIdList = [3560, 3561, 3562] # dataset debug
-    
-    # sample dataset
-    # testIdList = [3128, 3129, 3130] 
-
-    # # dataset1
-    # testDir = './data/dataset1/'
-    # testIdList = range(3582, 3601+1)
-
-    # dataset2
-    testDir = './data/dataset2/'
-    testIdList =  []
-    testIdList += list(range(3823, 3842+1))
-    for tId in [3826, 3837]: testIdList.remove(tId) # many rows with corrupte chars in serial log
-    testIdList += list(range(3912, 3943+1))
-    testIdList.remove(3918) # 4 non-parsable json rows
-    testIdList.remove(3926) # test failed to run
-    testIdList += list(range(3947, 3958+1))
-    testIdList.remove(3952) # 1 non-parsable json row
-    testIdList += [3965] # rerun of 3952
-
-    # # debug dataset2
-    # testIdList = [3826] # tx_power=-9, modulation=8, serial corrupted
-    # testIdList = [3837] # tx_power=9, modulation=10, serial corrupted
-    # testIdList = range(3860, 3865+1)
-    # testIdList = range(3880, 3883+1)
+    # dataset1
+    testDir = './data/dataset1/'
+    testIdList = range(3582, 3601+1)
 
     # ensure dir for storing tests exists
     os.makedirs(testDir, exist_ok=True)

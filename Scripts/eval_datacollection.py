@@ -329,20 +329,15 @@ def evalConnectivity(matrixDfDict, nodeIds, txConfigLabels, prrThreshold=0.95, o
 ################################################################################
 
 if __name__ == "__main__":
-    # # check arguments
-    # if len(sys.argv) < 2:
-    #     print("no dataset file specified!")
-    #     sys.exit(1)
-    # elif len(sys.argv) > 2:
-    #     print("too many arguments provided!")
-    #     sys.exit(1)
-    # datasetFile = sys.argv[1]
+    # check arguments
+    if len(sys.argv) < 2:
+        print("no dataset file specified!")
+        sys.exit(1)
+    elif len(sys.argv) > 2:
+        print("too many arguments provided!")
+        sys.exit(1)
+    datasetFile = sys.argv[1]
 
-    # datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/flood_dataset_3562_3f8d4e67.zip'
-    # datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/flood_dataset_3601_7c8def8b.zip'
-    # datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/sample_dataset/flood_dataset_3130_43841b6f.zip'
-    # datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/dataset1/flood_dataset_3601_7814960e.zip'
-    datasetFile = '/home/rtrueb/gitlab/dpp/software/communication_platforms/sx126x_lora/flora/elwb/Scripts/data/dataset2/flood_dataset_3965_0bbe0f03.zip'
     outputDir = os.path.split(datasetFile)[0]
 
     # load data from dataset
