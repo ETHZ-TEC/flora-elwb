@@ -85,7 +85,7 @@ def readConfig(symbol, configFile='../Inc/app_config.h', idx=0):
     ret = ret[idx][1].strip()
     if len(ret) >= 2 and ret[0] == '"' and ret[-1] == '"':
         ret = ret[1:-1]
-    if ret.isnumeric():
+    if ret.lstrip('-').isdigit():
         ret = int(ret)
     return ret
 
@@ -271,9 +271,9 @@ if __name__ == "__main__":
     # pwrList = [-4, 4]
     # modulationList = [3, 5, 7, 8, 10]
 
-    hostIdList = [3]
-    pwrList = [-4]
-    modulationList = [8]
+    hostIdList = [2]
+    pwrList = [0]
+    modulationList = [10]
 
     # for num_hops=6
     mod2period = {
@@ -287,8 +287,8 @@ if __name__ == "__main__":
         1: 703,
     }
 
-    duration = 5*60 + 30
-    # duration = 2*60
+    # duration = 5*60 + 30
+    duration = 40
     # duration = mod2period[modulationList[0]] + 10
 
     for config in itertools.product(hostIdList, pwrList, modulationList):
@@ -298,7 +298,7 @@ if __name__ == "__main__":
             'gloria_power': pwr,
             'gloria_modulation': modulation,
             # 'gloria_band': 2,
-            # 'elwb_n_tx': 3,
+            'elwb_n_tx': 3,
             # 'elwb_num_hops': 3,
             'elwb_period': mod2period[modulation],
             'health_msg_period': mod2period[modulation],

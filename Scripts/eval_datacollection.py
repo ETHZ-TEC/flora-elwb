@@ -178,7 +178,7 @@ def extractConnectionData(df, txConfigLabels):
     return matrixDfDict
 
 
-def saveMatricesToHtml(matrixDfDict, xConfigLabels, dfHash, matrixNames, titles, cmaps, formats, applymaps=None, outputDir='data'):
+def saveMatricesToHtml(matrixDfDict, txConfigLabels, dfHash, matrixNames, titles, cmaps, formats, applymaps=None, outputDir='data'):
     h = html()
     if applymaps is None:
         applymaps = (lambda x: '', lambda x: '')

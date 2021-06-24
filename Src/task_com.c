@@ -99,7 +99,7 @@ void collect_radio_stats(uint16_t initiator_id, elwb_phases_t elwb_phase, elwb_p
              "\"rssi\":%d,"
              "\"snr\":%d,"
              "\"payload_len\":%d,"
-             "\"t_ref_updated\":%llu,"
+             "\"t_ref_updated\":%d,"
              "\"network_time\":%llu,"
              "\"t_ref\":%llu"
              "}",
