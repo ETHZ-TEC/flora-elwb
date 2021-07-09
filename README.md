@@ -1,9 +1,5 @@
 # eLWB for the DPP2 ComBoard (SX1262)
 
-## How to
+Event-based Low-Power Wireless Bus application for the DPP2 ComBoard.
 
-*  clone the repository: `git clone --recurse-submodule git@gitlab.ethz.ch:tec/research/dpp/software/communication_platforms/sx126x_lora/flora/elwb.git`
-*  open the project with STM32CubeIDE
-*  open the `comboard_elwb.ioc` file and generate the source code (this will create a `Drivers` and `Middlewares` folder)
-
-For more information, consult the [DPP wiki](https://gitlab.ethz.ch/tec/research/dpp/wiki/).
+A how-to guide is available in the [Flora wiki](https://gitlab.ethz.ch/tec/public/flora/wiki#clone-compile-run).
