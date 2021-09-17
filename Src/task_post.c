@@ -158,8 +158,10 @@ void vTask_post(void const * argument)
       }
     }
 
+#if BASEBOARD
     /* process pending commands */
     process_commands();
+#endif /* BASEBOARD */
 
     /* update RTC time */
     uint32_t rtctime  = rtc_get_unix_timestamp();

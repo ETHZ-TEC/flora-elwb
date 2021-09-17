@@ -47,7 +47,9 @@ static uint32_t           rcvd_msg_cnt     = 0;
 static event_msg_level_t  event_msg_level  = EVENT_MSG_LEVEL;
 static event_msg_target_t event_msg_target = EVENT_MSG_TARGET;
 
+#if BASEBOARD
 LIST_CREATE(pending_commands, sizeof(scheduled_cmd_t), COMMAND_QUEUE_SIZE);
+#endif /* BASEBOARD */
 
 
 /* Functions -----------------------------------------------------------------*/
@@ -58,7 +60,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
   uint16_t msg_len = DPP_MSG_LEN(msg);
 
   /* check message type, length and CRC */
-  if (ps_validate_msg(msg)) {
+  if (!ps_validate_msg(msg)) {
     LOG_ERROR("msg with invalid length or CRC (sender %u, len %ub, type 0x%x)", msg->header.device_id, msg_len, msg->header.type);
     EVENT_WARNING(EVENT_SX1262_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
     return 1;
@@ -71,7 +73,6 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
   if (msg->header.target_id == NODE_ID || forward) {
     rcvd_msg_cnt++;
     if (msg->header.type == DPP_MSG_TYPE_CMD) {
-      scheduled_cmd_t sched_cmd;
       bool successful = false;
 
       LOG_VERBOSE("command received");
@@ -127,8 +128,11 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         successful = true;
         break;
 
+#if BASEBOARD
       case CMD_SX1262_BASEBOARD_ENABLE:
       case CMD_SX1262_BASEBOARD_DISABLE:
+      {
+	    scheduled_cmd_t sched_cmd;
         if (IS_HOST) {
           break;    /* host node is not supposed to turn off the baseboard */
         }
@@ -149,7 +153,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
           LOG_VERBOSE("baseboard command %u scheduled (time: %lu)", msg->cmd.type & 0xff, sched_cmd.scheduled_time);
         }
         successful = true;
-        break;
+      } break;
 
       case CMD_SX1262_BASEBOARD_ENABLE_PERIODIC:
         if (IS_HOST) {
@@ -179,6 +183,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         }
         successful = true;
         break;
+#endif /* BASEBOARD */
 
       default:
         /* unknown command */
@@ -240,6 +245,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
   return 1;
 }
 
+#if BASEBOARD
 void process_commands(void)
 {
   uint32_t curr_time = elwb_get_time_sec();
@@ -274,6 +280,7 @@ void process_commands(void)
     LOG_INFO("baseboard enabled, next wakeup scheduled (in %us)", config.bb_en.period);
   }
 }
+#endif /* BASEBOARD */
 
 /*
  * calling this function from an interrupt context can lead to erratic behaviour
@@ -441,6 +448,7 @@ void send_command(dpp_command_type_t cmd, uint32_t arg, uint32_t len)
   send_message(NODE_ID, DPP_MSG_TYPE_CMD, 0, len, true);    /* always send to bolt */
 }
 
+#if BASEBOARD
 bool schedule_command(uint32_t sched_time, dpp_command_type_t cmd_type, uint16_t arg)
 {
   scheduled_cmd_t cmd;
@@ -451,6 +459,7 @@ bool schedule_command(uint32_t sched_time, dpp_command_type_t cmd_type, uint16_t
 
   return list_insert(pending_commands, sched_time, &cmd);
 }
+#endif /* BASEBOARD */
 
 void set_event_level(event_msg_level_t level)
 {
