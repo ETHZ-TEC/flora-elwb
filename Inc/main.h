@@ -105,12 +105,13 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
-void      set_master_timestamp(uint64_t ts_us);
-uint64_t  get_master_timestamp(void);
+void      set_unix_timestamp_us(uint64_t ts_us);
+uint64_t  get_unix_timestamp_us(void);
 
 void      rtos_init(void);
 uint32_t  rtos_get_cpu_dc(void);     /* get duty cycle */
 void      rtos_reset_cpu_dc(void);   /* reset duty cycle */
+void      rtos_check_stack_usage(void);
 
 /* USER CODE END EFP */
 

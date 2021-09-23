@@ -28,6 +28,10 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * pre-communication task (reads messages from BOLT, handles timestamp requests)
+ */
+
 #include "main.h"
 
 
@@ -46,30 +50,40 @@ extern TIM_HandleTypeDef htim2;
 
 
 /* Private variables ---------------------------------------------------------*/
-static uint64_t master_timestamp      = 0;
+static uint64_t unix_timestamp_us     = 0;
 static uint64_t bolt_trq_timestamp    = 0;
 static uint64_t bolt_trq_hs_timestamp = 0;
+static int32_t  average_drift_ppm     = 0;
 static bool     timestamp_updated     = false;
 static bool     timestamp_requested   = false;
 
 
 /* Functions -----------------------------------------------------------------*/
 
-
-void set_master_timestamp(uint64_t ts_us)
+static void init_time(void)
 {
-  master_timestamp  = ts_us;
+  /* load timestamp from RTC */
+  unix_timestamp_us = rtc_get_unix_timestamp_ms() * 1000;
+  LOG_INFO("UNIX timestamp %llu loaded from RTC", unix_timestamp_us);
+}
+
+
+void set_unix_timestamp_us(uint64_t ts_us)
+{
+  unix_timestamp_us = ts_us;
   timestamp_updated = true;
 }
 
-uint64_t get_master_timestamp(void)
+
+uint64_t get_unix_timestamp_us(void)
 {
 #if TIMESTAMP_USE_HS_TIMER
-  return master_timestamp + ((hs_timer_now() - bolt_trq_hs_timestamp) * 1000000 / HS_TIMER_FREQUENCY);
+  return unix_timestamp_us + ((hs_timer_now() - bolt_trq_hs_timestamp) * (1000000LL - average_drift_ppm) / HS_TIMER_FREQUENCY);
 #else /* TIMESTAMP_USE_HS_TIMER */
-  return master_timestamp + ((lptimer_now() - bolt_trq_timestamp) * 1000000 / LPTIMER_SECOND);
+  return unix_timestamp_us + ((lptimer_now() - bolt_trq_timestamp) * (1000000LL - average_drift_ppm) / LPTIMER_SECOND);
 #endif /* TIMESTAMP_USE_HS_TIMER */
 }
+
 
 void GPIO_PIN_3_Callback(void)
 {
@@ -77,8 +91,10 @@ void GPIO_PIN_3_Callback(void)
   timestamp_requested = true;
 }
 
-void handle_trq(void)
+
+void handle_treq(void)
 {
+  /* timer 2 capture compare flag 4 set? (COM_TREQ) */
   if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_CC4)) {
     if (!lptimer_now_synced(&bolt_trq_timestamp, &bolt_trq_hs_timestamp)) {
       LOG_ERROR("failed to retrieve synchronized timestamps");
@@ -97,41 +113,44 @@ void handle_trq(void)
   }
 }
 
+
 void update_time(void)
 {
-  static int32_t  average_drift         = 0;
-  static uint64_t prev_trq_timestamp    = 0;
-  static uint64_t prev_master_timestamp = 0;
+  static uint64_t prev_trq_timestamp     = 0;
+  static uint64_t prev_unix_timestamp_us = 0;
 
   /* only update the time if a timestamp request has been registered and a new timestamp has been received */
   if (timestamp_requested && timestamp_updated) {
     /* first, calculate the drift */
-    if (prev_master_timestamp) {
-      int32_t master_ts_diff_us = (master_timestamp - prev_master_timestamp);
+    if (prev_unix_timestamp_us) {
+      int32_t  unix_ts_diff_us = (unix_timestamp_us - prev_unix_timestamp_us);
   #if TIMESTAMP_USE_HS_TIMER
-      int32_t local_ts_diff_us = ((uint64_t)(bolt_trq_hs_timestamp - prev_trq_timestamp) * 1000000 / HS_TIMER_FREQUENCY);
+      int32_t local_ts_diff_us = (uint64_t)HS_TIMER_TICKS_TO_US(bolt_trq_hs_timestamp - prev_trq_timestamp);
   #else /* TIMESTAMP_USE_HS_TIMER */
-      int32_t local_ts_diff_us = ((uint64_t)(bolt_trq_timestamp - prev_trq_timestamp) * 1000000 / LPTIMER_SECOND);
+      int32_t local_ts_diff_us = (uint64_t)HS_TIMER_TICKS_TO_US(bolt_trq_timestamp - prev_trq_timestamp);
   #endif /* TIMESTAMP_USE_HS_TIMER */
-      int32_t drift = (int64_t)(local_ts_diff_us - master_ts_diff_us) * 1000000 / master_ts_diff_us;
-      //LOG_VERBOSE("diff master: %ldus, diff local: %ldus, drift: %ldppm", master_ts_diff_us, local_ts_diff_us, drift);
-      if (drift > TIMESTAMP_TYPICAL_DRIFT || drift < -TIMESTAMP_TYPICAL_DRIFT) {
-        LOG_WARNING("drift is larger than usual");
+      int32_t drift_ppm        = (int32_t)((int64_t)(local_ts_diff_us - unix_ts_diff_us) * 1000000LL / unix_ts_diff_us);
+      if (drift_ppm < TIMESTAMP_MAX_DRIFT && drift_ppm > -TIMESTAMP_MAX_DRIFT) {
+        if (drift_ppm > TIMESTAMP_TYPICAL_DRIFT || drift_ppm < -TIMESTAMP_TYPICAL_DRIFT) {
+          LOG_WARNING("drift is larger than usual");
+        }
+        if (average_drift_ppm == 0) {
+          average_drift_ppm = drift_ppm;
+        } else {
+          average_drift_ppm = (average_drift_ppm + drift_ppm) / 2;
+        }
+        /* note: a negative drift means the local time runs too slow */
+        LOG_INFO("current drift compensation: %ldppm", average_drift_ppm);
+        elwb_set_drift(average_drift_ppm);
+
+      } else {
+        LOG_WARNING("drift is too large (%ldppm)", drift_ppm);
+        EVENT_WARNING(EVENT_SX1262_TSYNC_DRIFT, (uint32_t)drift_ppm);
       }
-      average_drift = (average_drift + drift) / 2;
-      /* make sure the drift does not exceed the maximum allowed value */
-      if (average_drift > TIMESTAMP_MAX_DRIFT) {
-        average_drift = TIMESTAMP_MAX_DRIFT;
-      } else if (average_drift < -TIMESTAMP_MAX_DRIFT) {
-        average_drift = -TIMESTAMP_MAX_DRIFT;
-      }
-      /* note: a negative drift means the local time runs slower than the master clock */
-      LOG_INFO("current drift: %ldppm, average drift: %ldppm", drift, average_drift);
-      elwb_set_drift(average_drift);
     }
 
     /* calculate the global time at the point where the next flood starts (note: use lptimer here in any case) */
-    uint64_t new_time_us = master_timestamp + (lptimer_get() - bolt_trq_timestamp) * 1000000 / LPTIMER_SECOND;
+    uint64_t new_time_us = unix_timestamp_us + (lptimer_get() - bolt_trq_timestamp) * 1000000 / LPTIMER_SECOND;
 
   #if TIMESTAMP_MAX_OFFSET_MS > 0
     /* calculate the difference between the actual time and the current network time */
@@ -144,10 +163,10 @@ void update_time(void)
     } else {
       if (delta > 500) {
         /* slow down the clock speed to compensate the offset */
-        elwb_set_drift(average_drift + 10);
+        elwb_set_drift(average_drift_ppm + 10);
       } else if (delta < -500) {
         /* speed up */
-        elwb_set_drift(average_drift - 10);
+        elwb_set_drift(average_drift_ppm - 10);
       }
       LOG_INFO("current time offset: %ldus", delta);
     }
@@ -161,11 +180,12 @@ void update_time(void)
   #else /* TIMESTAMP_USE_HS_TIMER */
     prev_trq_timestamp   = bolt_trq_timestamp;
   #endif /* TIMESTAMP_USE_HS_TIMER */
-    prev_master_timestamp = master_timestamp;
+    prev_unix_timestamp_us = unix_timestamp_us;
   }
   timestamp_requested = false;
   timestamp_updated   = false;
 }
+
 
 /* pre communication round task */
 void vTask_pre(void const * argument)
@@ -177,8 +197,12 @@ void vTask_pre(void const * argument)
     FATAL_ERROR("invalid message size config");
   }
 
+  init_time();
+
+#if TIMESTAMP_USE_HS_TIMER
   /* configure input capture for TIM2_CH4 (PA3) */
   HAL_TIM_IC_Start(&htim2, TIM_CHANNEL_4);
+#endif /* TIMESTAMP_USE_HS_TIMER */
 
   /* Infinite loop */
   for (;;)
@@ -213,7 +237,7 @@ void vTask_pre(void const * argument)
     }
 
     /* handle timestamp request (only if BOLT enabled) */
-    handle_trq();
+    handle_treq();
     if (!IS_HOST) {
       if (timestamp_requested) {
         send_timestamp(bolt_trq_timestamp);
@@ -222,44 +246,37 @@ void vTask_pre(void const * argument)
     } else {
       update_time();
     }
-#endif /* BOLT_ENABLE */
 
-#if BASEBOARD_TREQ_WATCHDOG && BASEBOARD
+  #if BASEBOARD_TREQ_WATCHDOG && BASEBOARD
+    static uint64_t last_treq = 0;
+    if (bolt_trq_timestamp > last_treq) {
+      last_treq = bolt_trq_timestamp;
+    }
     /* only use time request watchdog when baseboard is enabled */
-    if (PIN_STATE(BASEBOARD_ENABLE)) {
+    if (BASEBOARD_IS_ENABLED()) {
       bool powercycle = false;
-  #if TIMESTAMP_USE_HS_TIMER
       /* check when was the last time we got a time request */
-      if (((hs_timer_now() - bolt_trq_hs_timestamp) / HS_TIMER_FREQUENCY) > BASEBOARD_TREQ_WATCHDOG) {
-        bolt_trq_hs_timestamp = hs_timer_now();
+      if (((hs_timer_now() - last_treq) / HS_TIMER_FREQUENCY) > BASEBOARD_TREQ_WATCHDOG) {
+        last_treq = hs_timer_now();
         powercycle = true;
       }
-  #else /* TIMESTAMP_USE_HS_TIMER */
-      if (((lptimer_now() - bolt_trq_timestamp) / LPTIMER_SECOND) > BASEBOARD_TREQ_WATCHDOG) {
-        bolt_trq_timestamp = lptimer_now();
-        powercycle = true;
-      }
-  #endif /* TIMESTAMP_USE_HS_TIMER */
       if (powercycle) {
         /* power cycle the baseboard */
         LOG_WARNING("power-cycling baseboard (TREQ watchdog)");
-        PIN_CLR(BASEBOARD_ENABLE);
+        BASEBOARD_DISABLE();
         /* enable pin must be kept low for ~1s -> schedule pin release */
-        if (!schedule_command(0, CMD_SX1262_BASEBOARD_ENABLE, 0)) {  /* scheduled time can be 0, i.e. it will be executed in the next post_task run */
+        if (!schedule_bb_command((elwb_get_time(0) / 1000000) + 2, CMD_SX1262_BASEBOARD_ENABLE, 0)) {
           /* we must wait and release the reset here */
           LOG_WARNING("failed to schedule baseboard enable");
-          delay_us(60000);
-          PIN_SET(BASEBOARD_ENABLE);
+          delay_us(1000000);
+          BASEBOARD_ENABLE();
         }
       }
     } else {
-  #if TIMESTAMP_USE_HS_TIMER
-      bolt_trq_hs_timestamp = hs_timer_now();
-  #else /* TIMESTAMP_USE_HS_TIMER */
-      bolt_trq_timestamp = lptimer_now();
-  #endif /* TIMESTAMP_USE_HS_TIMER */
+      last_treq = hs_timer_now();
     }
-#endif /* BASEBOARD_TREQ_WATCHDOG */
+  #endif /* BASEBOARD_TREQ_WATCHDOG */
+#endif /* BOLT_ENABLE */
 
     /* wake the radio */
     radio_wakeup();

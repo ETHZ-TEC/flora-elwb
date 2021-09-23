@@ -225,6 +225,68 @@ void rtos_reset_cpu_dc(void)
   active_time = 0;
 }
 
+void rtos_check_stack_usage(void)
+{
+  static unsigned long idleTaskStackWM = 0,
+#if BOLT_ENABLE
+                       preTaskStackWM  = 0,
+#endif /* BOLT_ENABLE */
+                       comTaskStackWM  = 0,
+                       postTaskStackWM = 0;
+
+  /* check stack watermarks (store the used words) */
+  unsigned long idleSWM = configMINIMAL_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_idle));
+#if BOLT_ENABLE
+  unsigned long preSWM  = PRE_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_pre));
+#endif /* BOLT_ENABLE */
+  unsigned long comSWM  = COM_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_com));
+  unsigned long postSWM = POST_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_post));
+
+  if (idleSWM > idleTaskStackWM) {
+    idleTaskStackWM = idleSWM;
+    uint32_t usage = idleTaskStackWM * 100 / configMINIMAL_STACK_SIZE;
+    if (usage > STACK_WARNING_THRESHOLD) {
+      LOG_WARNING("stack watermark of idle task reached %u%%", usage);
+      EVENT_WARNING(EVENT_SX1262_STACK_WM, usage);
+    } else {
+      LOG_INFO("stack watermark of idle task increased to %u%%", usage);
+    }
+  }
+#if BOLT_ENABLE
+  if (preSWM > preTaskStackWM) {
+    preTaskStackWM = preSWM;
+    uint32_t usage = preTaskStackWM * 100 / PRE_TASK_STACK_SIZE;
+    if (usage > STACK_WARNING_THRESHOLD) {
+      LOG_WARNING("stack watermark of pre task reached %u%%", usage);
+      EVENT_WARNING(EVENT_SX1262_STACK_WM, 0x00010000 | usage);
+    } else {
+      LOG_INFO("stack watermark of pre task increased to %u%%", usage);
+    }
+  }
+#endif /* BOLT_ENABLE */
+  if (comSWM > comTaskStackWM) {
+    comTaskStackWM = comSWM;
+    uint32_t usage = comTaskStackWM * 100 / COM_TASK_STACK_SIZE;
+    if (usage > STACK_WARNING_THRESHOLD) {
+      LOG_WARNING("stack watermark of com task reached %u%%", usage);
+      EVENT_WARNING(EVENT_SX1262_STACK_WM, 0x00020000 | usage);
+    } else {
+      LOG_INFO("stack watermark of com task increased to %u%%", usage);
+    }
+  }
+  if (postSWM > postTaskStackWM) {
+    postTaskStackWM = postSWM;
+    uint32_t usage = postTaskStackWM * 100 / POST_TASK_STACK_SIZE;
+    if (usage > STACK_WARNING_THRESHOLD) {
+      LOG_WARNING("stack watermark of post task reached %u%%", usage);
+      EVENT_WARNING(EVENT_SX1262_STACK_WM, 0x00030000 | usage);
+    } else {
+      LOG_INFO("stack watermark of post task increased to %u%%", usage);
+    }
+  }
+}
+
+
 /* USER CODE END Application */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

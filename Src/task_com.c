@@ -201,20 +201,4 @@ void vTask_com(void const * argument)
   /* start eLWB */
   elwb_start();
   FATAL_ERROR("eLWB task terminated");
-
-  /* for debugging purposes only if eLWB is not used */
-  while (1) {
-    xTaskNotify(xTaskHandle_post, 0, eNoAction);    /* notify the post task */
-    ELWB_SUSPENDED();
-    vTaskDelay(MS_TO_RTOS_TICKS(900));
-    ELWB_RESUMED();
-    /* send a flood */
-    const char payload[32] = "hello world!";
-    gloria_start(NODE_ID == HOST_ID, (uint8_t*)payload, sizeof(payload), 2, 1);
-    /* wait some time */
-    vTaskDelay(MS_TO_RTOS_TICKS(100));
-    /* stop the flood */
-    gloria_stop();
-    LOG_INFO("com task executed");
-  }
 }

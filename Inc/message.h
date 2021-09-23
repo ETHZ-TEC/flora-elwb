@@ -34,10 +34,6 @@
 
 /* --- definitions --- */
 
-#ifndef EVENT_MSG_ENABLE
-#define EVENT_MSG_ENABLE          0
-#endif /* EVENT_MSG_ENABLE */
-
 #ifndef EVENT_MSG_TARGET
 #define EVENT_MSG_TARGET          EVENT_MSG_TARGET_UART
 #endif /* EVENT_MSG_TARGET */
@@ -67,6 +63,11 @@ typedef enum {
   EVENT_MSG_TARGET_NETWORK,
 } event_msg_target_t;
 
+typedef enum {
+  INTERFACE_BOLT,
+  INTERFACE_ELWB,
+} interface_t;
+
 typedef struct {
   dpp_command_type_t  type;
   uint16_t            arg;
@@ -89,17 +90,17 @@ typedef struct {
 
 /* --- function prototypes --- */
 
-uint_fast8_t  process_message(dpp_message_t* msg, bool rcvd_from_bolt);
-void          process_commands(void);     /* process pending commands */
-uint_fast8_t  send_message(uint16_t recipient, dpp_message_type_t type, const uint8_t* data, uint8_t len, bool send_to_bolt);
-void          send_node_health(void);
-void          send_node_info(void);
-void          send_timestamp(uint64_t trq_timestamp);
-void          send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val);
-void          send_command(dpp_command_type_t cmd, uint32_t arg, uint32_t len);
-bool          schedule_command(uint32_t sched_time, dpp_command_type_t cmd_type, uint16_t arg);
-void          set_event_level(event_msg_level_t level);
-void          set_event_target(event_msg_target_t target);
+bool process_message(dpp_message_t* msg, bool rcvd_from_bolt);
+void process_scheduled_bb_commands(void);     /* process pending commands */
+bool send_message(uint16_t recipient, dpp_message_type_t type, const uint8_t* data, uint8_t len, interface_t target);
+void send_node_health(void);
+void send_node_info(void);
+void send_timestamp(uint64_t trq_timestamp);
+void send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val);
+void send_command_to_app(dpp_command_type_t cmd, uint32_t arg, uint32_t len);
+bool schedule_bb_command(uint32_t sched_time, dpp_command_type_t cmd_type, uint16_t arg);
+void set_event_level(event_msg_level_t level);
+void set_event_target(event_msg_target_t target);
 
 
 #endif /* __MESSAGE_H */

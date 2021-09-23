@@ -28,8 +28,14 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/*
+ * post-communication task (serial printing, stats, periodic checks, ...)
+ */
+
 #include "main.h"
 
+
+/* Global variables ----------------------------------------------------------*/
 
 extern QueueHandle_t xQueueHandle_rx;
 extern TaskHandle_t xTaskHandle_pre;
@@ -52,68 +58,6 @@ uint32_t health_msg_period = NODE_HEALTH_MSG_PERIOD;
 
 
 /* Functions -----------------------------------------------------------------*/
-
-void check_stack_usage(void)
-{
-  static unsigned long idleTaskStackWM = 0,
-#if BOLT_ENABLE
-                       preTaskStackWM  = 0,
-#endif /* BOLT_ENABLE */
-                       comTaskStackWM  = 0,
-                       postTaskStackWM = 0;
-
-  /* check stack watermarks (store the used words) */
-  unsigned long idleSWM = configMINIMAL_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_idle));
-#if BOLT_ENABLE
-  unsigned long preSWM  = PRE_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_pre));
-#endif /* BOLT_ENABLE */
-  unsigned long comSWM  = COM_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_com));
-  unsigned long postSWM = POST_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_post));
-
-  if (idleSWM > idleTaskStackWM) {
-    idleTaskStackWM = idleSWM;
-    uint32_t usage = idleTaskStackWM * 100 / configMINIMAL_STACK_SIZE;
-    if (usage > STACK_WARNING_THRESHOLD) {
-      LOG_WARNING("stack watermark of idle task reached %u%%", usage);
-      EVENT_WARNING(EVENT_SX1262_STACK_WM, usage);
-    } else {
-      LOG_INFO("stack watermark of idle task increased to %u%%", usage);
-    }
-  }
-#if BOLT_ENABLE
-  if (preSWM > preTaskStackWM) {
-    preTaskStackWM = preSWM;
-    uint32_t usage = preTaskStackWM * 100 / PRE_TASK_STACK_SIZE;
-    if (usage > STACK_WARNING_THRESHOLD) {
-      LOG_WARNING("stack watermark of pre task reached %u%%", usage);
-      EVENT_WARNING(EVENT_SX1262_STACK_WM, 0x00010000 | usage);
-    } else {
-      LOG_INFO("stack watermark of pre task increased to %u%%", usage);
-    }
-  }
-#endif /* BOLT_ENABLE */
-  if (comSWM > comTaskStackWM) {
-    comTaskStackWM = comSWM;
-    uint32_t usage = comTaskStackWM * 100 / COM_TASK_STACK_SIZE;
-    if (usage > STACK_WARNING_THRESHOLD) {
-      LOG_WARNING("stack watermark of com task reached %u%%", usage);
-      EVENT_WARNING(EVENT_SX1262_STACK_WM, 0x00020000 | usage);
-    } else {
-      LOG_INFO("stack watermark of com task increased to %u%%", usage);
-    }
-  }
-  if (postSWM > postTaskStackWM) {
-    postTaskStackWM = postSWM;
-    uint32_t usage = postTaskStackWM * 100 / POST_TASK_STACK_SIZE;
-    if (usage > STACK_WARNING_THRESHOLD) {
-      LOG_WARNING("stack watermark of post task reached %u%%", usage);
-      EVENT_WARNING(EVENT_SX1262_STACK_WM, 0x00030000 | usage);
-    } else {
-      LOG_INFO("stack watermark of post task increased to %u%%", usage);
-    }
-  }
-}
-
 
 void vTask_post(void const * argument)
 {
@@ -160,7 +104,7 @@ void vTask_post(void const * argument)
 
 #if BASEBOARD
     /* process pending commands */
-    process_commands();
+    process_scheduled_bb_commands();
 #endif /* BASEBOARD */
 
     /* update RTC time */
@@ -172,11 +116,10 @@ void vTask_post(void const * argument)
     }
 
     /* check for critical stack usage or overflow */
-    check_stack_usage();
+    rtos_check_stack_usage();
 
     /* print some stats */
-    LOG_INFO("CPU duty cycle:  %u%%    radio duty cycle (rx/tx):  %uppm/%uppm", (uint16_t)rtos_get_cpu_dc() / 100, radio_get_rx_dc(), radio_get_tx_dc());
-    //LOG_VERBOSE("post task executed");
+    LOG_INFO("CPU duty cycle:  %.2f%%    radio duty cycle (rx/tx):  %.2f%%/%.2f%%", (float)rtos_get_cpu_dc() / 100.0f, (float)radio_get_rx_dc() / 10000.0f, (float)radio_get_tx_dc() / 10000.0f);
 
     /* flush the log print queue */
 #if !LOG_PRINT_IMMEDIATELY

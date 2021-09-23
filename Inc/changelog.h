@@ -34,6 +34,10 @@
 
 /*
 
+v0.2.6
+- code refactoring, some adjustments to message handling and debug prints
+- timestamping fixed
+
 v0.2.5
 - minor code refactoring
 - data collection updated

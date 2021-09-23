@@ -42,7 +42,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                2           /* 0..99 */
-#define FW_VERSION_PATCH                5           /* 0..99 */
+#define FW_VERSION_PATCH                6           /* 0..99 */
 
 #define FLOCKLAB                        1           /* set to 1 to run on FlockLab */
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
@@ -62,7 +62,7 @@
 #define WRITE_NODE_ID                   0           /* 1 = force node ID overwrite, 0 = use ID stored in NV config if available */
 
 /* energy (low-power mode) */
-#if SWO_ENABLE
+#if SWO_ENABLE || (!FLOCKLAB && (HOST_ID == NODE_ID))
   #define LOW_POWER_MODE                LP_MODE_SLEEP  /* low-power mode to use between rounds during periods of inactivity */
   #define TIMESTAMP_USE_HS_TIMER        1              /* use hs_timer for timestamping events on the TREQ pin for better accuracy */
 #else /* SWO_ENABLE */
@@ -82,6 +82,7 @@
   #define NODE_HEALTH_MSG_PERIOD        60   /* in seconds */
 #endif
 #define COLLECT_FLOODING_DATA           0
+#define PS_TIMESTAMP()                  elwb_get_time(0)
 
 /* memory */
 #define PRE_TASK_STACK_SIZE             256                             /* in # words of 4 bytes */
@@ -90,7 +91,7 @@
 #define STACK_WARNING_THRESHOLD         80                              /* a warning will be generated once the stack usage of a task exceeds this value (in percent) */
 #define TRANSMIT_QUEUE_SIZE             20                              /* #messages */
 #define RECEIVE_QUEUE_SIZE              ELWB_CONF_MAX_DATA_SLOTS        /* #messages */
-#define COMMAND_QUEUE_SIZE              10
+#define BASEBOARD_CMD_QUEUE_SIZE        10
 
 /* non-volatile config storage */
 #define NVCFG_ENABLE                    1    /* use non-volatile config storage */
@@ -121,7 +122,7 @@
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES
 #define ELWB_ON_WAKEUP()                lpm_update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_CONF_T_PREPROCESS          ELWB_MS_TO_TICKS(50)
-#define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32  /* nodes to pre-register in the scheduler, also include HOST_ID here! */
+#define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 19, 20, 21, 22, 23, 24, 26, 27, 28, 31, 32  /* nodes to pre-register in the scheduler, also include HOST_ID here! */
 
 /* baseboard */
 #if BASEBOARD

@@ -48,32 +48,31 @@ static event_msg_level_t  event_msg_level  = EVENT_MSG_LEVEL;
 static event_msg_target_t event_msg_target = EVENT_MSG_TARGET;
 
 #if BASEBOARD
-LIST_CREATE(pending_commands, sizeof(scheduled_cmd_t), COMMAND_QUEUE_SIZE);
+LIST_CREATE(pending_bb_cmds, sizeof(scheduled_cmd_t), BASEBOARD_CMD_QUEUE_SIZE);    // list to store the pending baseboard enable/disable commands
 #endif /* BASEBOARD */
 
 
 /* Functions -----------------------------------------------------------------*/
 
-/* returns 1 if processed (or dropped), 0 if forwarded */
-uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
+/* returns true if processed (or dropped), false otherwise (forwarded) */
+bool process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 {
-  uint16_t msg_len = DPP_MSG_LEN(msg);
-
   /* check message type, length and CRC */
   if (!ps_validate_msg(msg)) {
-    LOG_ERROR("msg with invalid length or CRC (sender %u, len %ub, type 0x%x)", msg->header.device_id, msg_len, msg->header.type);
-    EVENT_WARNING(EVENT_SX1262_INV_MSG, ((uint32_t)msg_len) << 16 | msg->header.device_id);
-    return 1;
+    LOG_ERROR("msg with invalid length or CRC (sender %u, len %ub, type 0x%x)", msg->header.device_id, msg->header.payload_len, msg->header.type);
+    EVENT_WARNING(EVENT_SX1262_INV_MSG, ((uint32_t)msg->header.payload_len) << 16 | msg->header.device_id);
+    return true;
   }
-  LOG_VERBOSE("msg type: %u, src: %u, len: %uB", msg->header.type, msg->header.device_id, msg_len);
+  LOG_VERBOSE("msg type: %u, src: %u, len: %uB", msg->header.type, msg->header.device_id, msg->header.payload_len);
 
   /* only process the message if target ID matched the node ID */
-  uint16_t forward     = (msg->header.target_id == DPP_DEVICE_ID_BROADCAST);
+  bool forward = (msg->header.target_id == DPP_DEVICE_ID_BROADCAST);
 
-  if (msg->header.target_id == NODE_ID || forward) {
+  if (msg->header.target_id == NODE_ID || msg->header.target_id == DPP_DEVICE_ID_BROADCAST) {
     rcvd_msg_cnt++;
     if (msg->header.type == DPP_MSG_TYPE_CMD) {
-      bool successful = false;
+      bool successful  = false;
+      bool cfg_changed = false;
 
       LOG_VERBOSE("command received");
 
@@ -81,8 +80,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
       case DPP_COMMAND_RESET:
       case CMD_SX1262_RESET:
         if (IS_HOST) {
-          // only reset if message is not a broadcast message
-          if (!forward) {
+          if (msg->header.target_id != DPP_DEVICE_ID_BROADCAST) {
             NVIC_SystemReset();
           }
         } else {
@@ -146,9 +144,9 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         if (msg->cmd.type == CMD_SX1262_BASEBOARD_ENABLE) {
           sched_cmd.arg = (uint16_t)msg->cmd.arg[6] << 8 | msg->cmd.arg[5];
         }
-        if (!list_insert(pending_commands, sched_cmd.scheduled_time, &sched_cmd)) {
+        if (!list_insert(pending_bb_cmds, sched_cmd.scheduled_time, &sched_cmd)) {
           LOG_WARNING("failed to add command to queue");
-          EVENT_WARNING(EVENT_SX1262_QUEUE_FULL, 3);
+          EVENT_WARNING(EVENT_SX1262_QUEUE_FULL, 10);
         } else {
           LOG_VERBOSE("baseboard command %u scheduled (time: %lu)", msg->cmd.type & 0xff, sched_cmd.scheduled_time);
         }
@@ -169,8 +167,10 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
           }
         } else {
           config.bb_en.starttime = 0;
+          LOG_INFO("periodic baseboard enable cleared");
         }
         successful = true;
+        cfg_changed = true;
         break;
 
       case CMD_SX1262_BASEBOARD_POWER_EXT3:
@@ -188,7 +188,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
       default:
         /* unknown command */
         if (!IS_HOST) {
-          forward = 1;  /* forward to BOLT */
+          forward = true;  /* forward to BOLT */
         }
         break;
       }
@@ -200,10 +200,20 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
         EVENT_WARNING(EVENT_SX1262_INV_CMD, msg->cmd.type & 0xff);
       }
 
+      if (cfg_changed) {
+    #if NVCFG_ENABLE
+        if (nvcfg_save(&config)) {
+          LOG_INFO("config saved to NV memory");
+        } else {
+          LOG_ERROR("failed to save config");
+        }
+    #endif /* NVCFG_ENABLE */
+      }
+
 #if BOLT_ENABLE
     /* message types only processed by the host */
     } else if (msg->header.type == DPP_MSG_TYPE_TIMESYNC) {
-      set_master_timestamp(msg->timestamp);
+      set_unix_timestamp_us(msg->timestamp);
       LOG_VERBOSE("timestamp %llu received", msg->timestamp);
 #endif /* BOLT_ENABLE */
 
@@ -211,14 +221,14 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
     } else {
 
       if (!IS_HOST) {
-        forward = 1;    /* source nodes forward messages */
+        forward = true;    /* source nodes forward messages */
       }
       EVENT_WARNING(EVENT_SX1262_MSG_IGNORED, msg->header.type);
     }
 
   /* target id is not this node -> forward message */
   } else {
-    forward = 1;
+    forward = true;
   }
 
   /* forward the message */
@@ -233,6 +243,7 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
     } else {
 #if BOLT_ENABLE
       /* forward to BOLT */
+      uint8_t msg_len = DPP_MSG_LEN(msg);
       if (!bolt_write((uint8_t*)msg, msg_len)) {
         LOG_ERROR("failed to write message to BOLT");
       } else {
@@ -240,129 +251,146 @@ uint_fast8_t process_message(dpp_message_t* msg, bool rcvd_from_bolt)
       }
 #endif /* BOLT_ENABLE */
     }
-    return 0;
+    return false;
   }
-  return 1;
+
+  return true;
 }
 
+
 #if BASEBOARD
-void process_commands(void)
+
+void process_scheduled_bb_commands(void)
 {
   uint32_t curr_time = elwb_get_time_sec();
-  const scheduled_cmd_t* next_cmd = list_get_head(pending_commands);
+  const scheduled_cmd_t* next_cmd = list_get_head(pending_bb_cmds);
   if (next_cmd) {
     /* there are pending commands */
     /* anything that needs to be executed now? */
     while (next_cmd && next_cmd->scheduled_time <= curr_time) {
       switch (next_cmd->type) {
       case CMD_SX1262_BASEBOARD_ENABLE:
-        PIN_SET(BASEBOARD_ENABLE);
+        BASEBOARD_ENABLE();
         LOG_INFO("baseboard enabled");
-        send_command(CMD_BASEBOARD_WAKEUP_MODE, next_cmd->arg, 4);
+        send_command_to_app(CMD_BASEBOARD_WAKEUP_MODE, next_cmd->arg, 2);
         break;
       case CMD_SX1262_BASEBOARD_DISABLE:
-        PIN_CLR(BASEBOARD_ENABLE);
+        BASEBOARD_DISABLE();
         LOG_INFO("baseboard disabled");
+        bolt_get_write_cnt(true);         // assume all messages have been read from bolt at this point -> reset counter
         break;
       default:
         break;
       }
-      list_remove_head(pending_commands, 0);
-      next_cmd = list_get_head(pending_commands);
+      list_remove_head(pending_bb_cmds, 0);
+      next_cmd = list_get_head(pending_bb_cmds);
     }
   }
   /* check the periodic baseboard enable */
   if (config.bb_en.starttime > 0 && config.bb_en.starttime <= curr_time) {
-    PIN_SET(BASEBOARD_ENABLE);
+    BASEBOARD_ENABLE();
     while (config.bb_en.period > 0 && config.bb_en.starttime < curr_time) {
       config.bb_en.starttime += config.bb_en.period;
     }
-    LOG_INFO("baseboard enabled, next wakeup scheduled (in %us)", config.bb_en.period);
+    LOG_INFO("baseboard enabled (next wakeup in %lus)", config.bb_en.starttime - curr_time);
   }
 }
+
 #endif /* BASEBOARD */
+
 
 /*
  * calling this function from an interrupt context can lead to erratic behaviour
  * Note: if data is 0, the data in the static msg_buffer will be used
  */
-uint_fast8_t send_message(uint16_t recipient,
-                          dpp_message_type_t type,
-                          const uint8_t* data,
-                          uint8_t len,
-                          bool send_to_bolt)
+bool send_message(uint16_t recipient,
+                  dpp_message_type_t type,
+                  const uint8_t* data,
+                  uint8_t len,
+                  interface_t target)
 {
   /* separate sequence number for each interface */
-  static uint16_t seq_no_lwb  = 0;
+  static uint16_t seq_no_elwb = 0;
   static uint16_t seq_no_bolt = 0;
+
+  /* check if in interrupt context */
+  if (IS_INTERRUPT()) {
+    LOG_WARNING("cannot send messages from ISR (msg of type %u dropped)", type);
+    return false;
+  }
 
   /* check message length */
   if (len > DPP_MSG_PAYLOAD_LEN) {
     LOG_WARNING("invalid message length");
     EVENT_WARNING(EVENT_SX1262_INV_MSG, ((uint32_t)type) << 16 | len);
-    return 0;
+    return false;
   }
 
+  /* compose the message */
   uint8_t msg_buffer_len = ps_compose_msg(recipient, type, data, len, &msg_buffer);
   if (!msg_buffer_len) {
-    return 0;
+    return false;
   }
+
+  /* adjust the sequence number (per interface) */
   if ((type & DPP_MSG_TYPE_MIN) == 0) {
-    if (send_to_bolt) {
+    if (target == INTERFACE_BOLT) {
       msg_buffer.header.seqnr = seq_no_bolt++;
-    } else {
-      msg_buffer.header.seqnr = seq_no_lwb++;
+    } else if (target == INTERFACE_ELWB) {
+      msg_buffer.header.seqnr = seq_no_elwb++;
     }
     ps_update_msg_crc(&msg_buffer);
   }
 
   /* forward the message either to BOLT or the eLWB */
-  if (send_to_bolt) {
+  switch (target) {
+
 #if BOLT_ENABLE
+  case INTERFACE_BOLT:
     if (bolt_write((uint8_t*)&msg_buffer, msg_buffer_len)) {
       LOG_VERBOSE("msg written to BOLT");
-      return 1;
+      return true;
     }
     LOG_INFO("msg dropped (BOLT queue full)");
+    break;
 #endif /* BOLT_ENABLE */
-  } else {
+
+  case INTERFACE_ELWB:
     if (xQueueSend(xQueueHandle_tx, &msg_buffer, 0)) {
       LOG_VERBOSE("msg added to transmit queue");
-      return 1;
+      return true;
     }
     LOG_ERROR("msg dropped (TX queue full)");
+    break;
+
+  default:
+    LOG_WARNING("invalid target (msg dropped)");
+    break;
   }
-  return 0;
+
+  return false;
 }
+
 
 /* send the timestamp to the APP processor */
 void send_timestamp(uint64_t trq_timestamp)
 {
   msg_buffer.timestamp = elwb_get_time(&trq_timestamp);
-  send_message(NODE_ID, DPP_MSG_TYPE_TIMESYNC, 0, 0, true);     /* always send to bolt */
+  send_message(NODE_ID, DPP_MSG_TYPE_TIMESYNC, 0, 0, INTERFACE_BOLT);     /* always send to bolt */
   LOG_INFO("timestamp %llu sent", msg_buffer.timestamp);
 }
 
+
 void send_node_info(void)
 {
-  memset((uint8_t*)&msg_buffer.node_info, 0, sizeof(dpp_node_info_t));
-  msg_buffer.node_info.component_id = DPP_COMPONENT_ID_SX1262;
-  msg_buffer.node_info.compiler_ver = (__GNUC__ * 1000000 + __GNUC_MINOR__ * 1000 + __GNUC_PATCHLEVEL__);
-  msg_buffer.node_info.compile_date = BUILD_TIME;   // UNIX timestamp
-  msg_buffer.node_info.fw_ver       = (uint16_t)(FW_VERSION_MAJOR * 10000 + FW_VERSION_MINOR * 100 + FW_VERSION_PATCH);
-  msg_buffer.node_info.rst_cnt      = config.rst_cnt;
-  uint8_t rst_flag;
-  system_get_reset_cause(&rst_flag);
-  msg_buffer.node_info.rst_flag     = rst_flag;
-  msg_buffer.node_info.sw_rev_id    = GIT_REV_INT;
-  memcpy(msg_buffer.node_info.compiler_desc, "GCC", MIN(4, strlen("GCC")));
-  memcpy(msg_buffer.node_info.fw_name, FW_NAME, MIN(8, strlen(FW_NAME)));
-  memcpy(msg_buffer.node_info.mcu_desc, "STM32L433CC", MIN(12, strlen("STM32L433CC")));
+  uint32_t cfg_field = 0;
+  ps_compose_nodeinfo(&msg_buffer, config.rst_cnt, cfg_field);
 
   LOG_INFO("node info msg generated");
   /* note: host sends message towards BOLT */
-  send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_NODE_INFO, 0, 0, IS_HOST);
+  send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_NODE_INFO, 0, 0, (IS_HOST ? INTERFACE_BOLT : INTERFACE_ELWB));
 }
+
 
 void send_node_health(void)
 {
@@ -406,8 +434,9 @@ void send_node_health(void)
   LOG_INFO("health msg generated");
 
   /* the host must send to BOLT, all other nodes to the network */
-  send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_COM_HEALTH, 0, 0, IS_HOST);
+  send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_COM_HEALTH, 0, 0, (IS_HOST ? INTERFACE_BOLT : INTERFACE_ELWB));
 }
+
 
 void send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val)
 {
@@ -429,27 +458,37 @@ void send_event(event_msg_level_t level, dpp_event_type_t type, uint32_t val)
     event.type = type;
     event.value = val;
     if (event_msg_target == EVENT_MSG_TARGET_BOLT) {
-      send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, true);
-      LOG_VERBOSE("event msg sent to BOLT");
+#if BOLT_ENABLE
+      /* do not report errors about BOLT via BOLT */
+      if (type != EVENT_SX1262_BOLT_ERROR) {
+        if (!send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, INTERFACE_BOLT)) {
+          LOG_ERROR("failed to send event of type %u", type);
+        }
+      }
+#endif /* BOLT_ENABLE */
     } else if (event_msg_target == EVENT_MSG_TARGET_NETWORK) {
-      send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, false);
-      LOG_VERBOSE("event msg sent to LWB");
+      if (!send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_EVENT, (uint8_t*)&event, 0, INTERFACE_ELWB)) {
+        LOG_ERROR("failed to send event of type %u", type);
+      }
     } else {
       LOG_WARNING("invalid event target");
     }
   }
 }
 
+
 /* send a command to the app processor */
-void send_command(dpp_command_type_t cmd, uint32_t arg, uint32_t len)
+void send_command_to_app(dpp_command_type_t cmd, uint32_t arg, uint32_t len)
 {
   msg_buffer.cmd.type     = cmd;
   msg_buffer.cmd.arg32[0] = arg;
-  send_message(NODE_ID, DPP_MSG_TYPE_CMD, 0, len, true);    /* always send to bolt */
+  send_message(NODE_ID, DPP_MSG_TYPE_CMD, 0, len, INTERFACE_BOLT);    /* always send to bolt */
 }
 
+
 #if BASEBOARD
-bool schedule_command(uint32_t sched_time, dpp_command_type_t cmd_type, uint16_t arg)
+
+bool schedule_bb_command(uint32_t sched_time, dpp_command_type_t cmd_type, uint16_t arg)
 {
   scheduled_cmd_t cmd;
 
@@ -457,14 +496,17 @@ bool schedule_command(uint32_t sched_time, dpp_command_type_t cmd_type, uint16_t
   cmd.type           = cmd_type;
   cmd.arg            = arg;
 
-  return list_insert(pending_commands, sched_time, &cmd);
+  return list_insert(pending_bb_cmds, sched_time, &cmd);
 }
+
 #endif /* BASEBOARD */
+
 
 void set_event_level(event_msg_level_t level)
 {
   event_msg_level = level;
 }
+
 
 void set_event_target(event_msg_target_t target)
 {
