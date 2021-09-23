@@ -77,9 +77,9 @@
 
 /* data collection config */
 #if FLOCKLAB
-#define NODE_HEALTH_MSG_PERIOD          15   /* in seconds */
+  #define NODE_HEALTH_MSG_PERIOD        15   /* in seconds */
 #else /* FLOCKLAB */
-#define NODE_HEALTH_MSG_PERIOD          60   /* in seconds */
+  #define NODE_HEALTH_MSG_PERIOD        60   /* in seconds */
 #endif
 #define COLLECT_FLOODING_DATA           0
 

@@ -148,17 +148,17 @@ void vTask_com(void const * argument)
 
   /* set elwb config values */
   if (elwb_sched_set_period(elwb_period)) { // Note: period needs to be larger than max round duration (based on current values of )
-    LOG_INFO("eLWB successfully set period to %lus", elwb_period);
+    LOG_INFO("eLWB period set to %lus", elwb_period);
   } else {
     LOG_WARNING("eLWB rejects setting period to %lus", elwb_period);
   }
   if (elwb_set_n_tx(elwb_n_tx)) {  // Note: Configured period needs to be large enough!
-    LOG_INFO("eLWB successfully set n_tx to %u", elwb_n_tx);
+    LOG_INFO("eLWB n_tx set to %u", elwb_n_tx);
   } else {
     LOG_WARNING("eLWB rejects setting n_tx to %u", elwb_n_tx);
   }
   if (elwb_set_num_hops(elwb_num_hops)) {  // Note: Configured period needs to be large enough!
-    LOG_INFO("eLWB successfully set num_hops to %u", elwb_num_hops);
+    LOG_INFO("eLWB num_hops set to %u", elwb_num_hops);
   } else {
     LOG_WARNING("eLWB rejects setting num_hops to %u", elwb_num_hops);
   }
