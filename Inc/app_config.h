@@ -93,15 +93,17 @@
 #define NVCFG_BLOCK_SIZE                16   /* note: must be sizeof(nv_config_t)! */
 
 /* Gloria config */
-#define GLORIA_INTERFACE_POWER          1    /* transmit power in dBm (max. value is 14 for most RF bands); keep non-zero init for binary patching!; config will be overwritten by binary patching! */
 #if FLOCKLAB
+  #define GLORIA_INTERFACE_POWER        1    /* transmit power in dBm (max. value is 14 for most RF bands); keep non-zero init for binary patching!; config will be overwritten by binary patching! */
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
   #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #elif BASEBOARD
   /* configuration for the deployment */
+  #define GLORIA_INTERFACE_POWER        14   /* transmit power in dBm (max. value is 14 for most RF bands) */
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
   #define GLORIA_INTERFACE_RF_BAND      43   /* 869.46 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #else
+  #define GLORIA_INTERFACE_POWER        14   /* transmit power in dBm (max. value is 14 for most RF bands) */
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
   #define GLORIA_INTERFACE_RF_BAND      48   /* 869.46 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #endif /* FLOCKLAB */
@@ -158,10 +160,6 @@
   #define LOG_ADD_TIMESTAMP             0       /* don't print the timestamp on FlockLab */
   #define LOG_PRINT_IMMEDIATELY         1       /* enable immediate printing to get accurate timestamps on FlockLab */
 #endif /* FLOCKLAB */
-#if SWO_ENABLE
-  //#define LOG_PRINT_FUNC                swo_print
-  //#define LOG_PRINT_IMMEDIATELY         1
-#endif /* SWO_ENABLE */
 
 /* debugging */
 #if !BASEBOARD
@@ -213,14 +211,6 @@
 #if BOLT_ENABLE && (BOLT_MAX_MSG_LEN < DPP_MSG_PKT_LEN)
 #error "BOLT_MAX_MSG_LEN is too small"
 #endif
-
-#if FLOCKLAB && BASEBOARD
-#error "can't use target FLOCKLAB and BASEBOARD at the same time"
-#endif
-
-// #if FLOCKLAB && (HOST_ID < 1 || HOST_ID > 25)
-// #error "HOST_ID is invalid for target FLOCKLAB"
-// #endif
 
 #if BASEBOARD_TREQ_WATCHDOG > 0 && BASEBOARD_TREQ_WATCHDOG < 120
 #error "BASEBOARD_TREQ_WATCHDOG must be >= 120"
