@@ -50,11 +50,11 @@
 #define SWO_ENABLE                      0           /* set to 1 to enable data tracing or serial printing via SWO pin */
 
 /* network parameters */
-#if BASEBOARD
-  #define HOST_ID                       103         /* note: host ID is only used to determine whether a node is a host node (irrelevant for source nodes) */
+#if FLOCKLAB
+  #define HOST_ID                       2           /* note: host ID is only used to determine whether a node is a host node (irrelevant for source nodes) */
 #else
-  #define HOST_ID                       2           /* note: host ID is only used to determine whether a node is a host node (irrelevant for source nodes); config will be overwritten by binary patching! */
-#endif /* BASEBOARD */
+  #define HOST_ID                       108         /* note: host ID is only used to determine whether a node is a host node (irrelevant for source nodes); config will be overwritten by binary patching! */
+#endif /* FLOCKLAB */
 #if !FLOCKLAB
   #define NODE_ID                       HOST_ID
 #endif /* FLOCKLAB */
@@ -76,7 +76,11 @@
 #define TIMESTAMP_MAX_OFFSET_MS         10    /* max. allowed offset in ms that the host tries to compensate; if larger, a jump in time occurs. set to 0 to always make a jump */
 
 /* data collection config */
+#if FLOCKLAB
 #define NODE_HEALTH_MSG_PERIOD          15   /* in seconds */
+#else /* FLOCKLAB */
+#define NODE_HEALTH_MSG_PERIOD          60   /* in seconds */
+#endif
 #define COLLECT_FLOODING_DATA           0
 
 /* memory */
@@ -97,15 +101,10 @@
   #define GLORIA_INTERFACE_POWER        1    /* transmit power in dBm (max. value is 14 for most RF bands); keep non-zero init for binary patching!; config will be overwritten by binary patching! */
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
   #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
-#elif BASEBOARD
-  /* configuration for the deployment */
-  #define GLORIA_INTERFACE_POWER        14   /* transmit power in dBm (max. value is 14 for most RF bands) */
-  #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
-  #define GLORIA_INTERFACE_RF_BAND      43   /* 869.46 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #else
   #define GLORIA_INTERFACE_POWER        14   /* transmit power in dBm (max. value is 14 for most RF bands) */
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
-  #define GLORIA_INTERFACE_RF_BAND      48   /* 869.46 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
+  #define GLORIA_INTERFACE_RF_BAND      43   /* 869.46 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #endif /* FLOCKLAB */
 
 /* eLWB config */
