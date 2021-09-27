@@ -244,7 +244,7 @@ bool process_message(dpp_message_t* msg, bool rcvd_from_bolt)
 #if BOLT_ENABLE
       /* forward to BOLT */
       /* on host node: make sure the generation time is valid, otherwise replace it with the current time */
-      if (IS_HOST && !(msg->header.type & DPP_MSG_TYPE_MIN) && (msg->header.generation_time < MIN_VALID_GENTIME)) {
+      if (IS_HOST && !(msg->header.type & DPP_MSG_TYPE_MIN) && (msg->header.generation_time < MIN_VALID_GENTIME_US)) {
         LOG_WARNING("invalid message generation time (%llu) replaced", msg->header.generation_time);
         msg->header.generation_time = elwb_get_time(0);
         ps_update_msg_crc(msg);
