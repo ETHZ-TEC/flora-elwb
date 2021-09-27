@@ -144,7 +144,7 @@
 /* logging */
 #define LOG_ENABLE                      1
 #define LOG_LEVEL                       LOG_LEVEL_VERBOSE
-#define LOG_USE_DMA                     1
+#define LOG_USE_DMA                     0
 #define LOG_BUFFER_SIZE                 4096
 #if LOG_USE_DMA
   #define UART_FIFO_BUFFER_SIZE         LOG_BUFFER_SIZE
