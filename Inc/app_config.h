@@ -83,6 +83,7 @@
 #endif
 #define COLLECT_FLOODING_DATA           0
 #define PS_TIMESTAMP()                  elwb_get_time(0)
+#define MIN_VALID_GENTIME_US            1e15    /* smallest valid generation time (smaller values will be replace with the current timestamp on the host node) */
 
 /* memory */
 #define PRE_TASK_STACK_SIZE             256                             /* in # words of 4 bytes */
@@ -117,7 +118,7 @@
 #define ELWB_CONF_SCHED_PERIOD          15
 #define ELWB_CONF_DATA_ACK              1
 #define ELWB_CONF_CONT_USE_HSTIMER      1
-#define ELWB_CONF_MAX_PAYLOAD_LEN       80
+#define ELWB_CONF_MAX_PAYLOAD_LEN       100
 #define ELWB_CONF_MAX_NODES             30
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES
 #define ELWB_ON_WAKEUP()                lpm_update_opmode(OP_MODE_EVT_WAKEUP)

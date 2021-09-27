@@ -37,6 +37,8 @@
 v0.2.6
 - code refactoring, some adjustments to message handling and debug prints
 - timestamping fixed
+- replace message generation time on host if it is invalid
+- max payload length increased to 100 bytes
 
 v0.2.5
 - minor code refactoring

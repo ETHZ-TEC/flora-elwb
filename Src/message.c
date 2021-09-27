@@ -243,6 +243,12 @@ bool process_message(dpp_message_t* msg, bool rcvd_from_bolt)
     } else {
 #if BOLT_ENABLE
       /* forward to BOLT */
+      /* on host node: make sure the generation time is valid, otherwise replace it with the current time */
+      if (IS_HOST && !(msg->header.type & DPP_MSG_TYPE_MIN) && (msg->header.generation_time < MIN_VALID_GENTIME)) {
+        LOG_WARNING("invalid message generation time (%llu) replaced", msg->header.generation_time);
+        msg->header.generation_time = elwb_get_time(0);
+        ps_update_msg_crc(msg);
+      }
       uint8_t msg_len = DPP_MSG_LEN(msg);
       if (!bolt_write((uint8_t*)msg, msg_len)) {
         LOG_ERROR("failed to write message to BOLT");
@@ -345,15 +351,15 @@ bool send_message(uint16_t recipient,
   /* forward the message either to BOLT or the eLWB */
   switch (target) {
 
-#if BOLT_ENABLE
   case INTERFACE_BOLT:
+#if BOLT_ENABLE
     if (bolt_write((uint8_t*)&msg_buffer, msg_buffer_len)) {
       LOG_VERBOSE("msg written to BOLT");
       return true;
     }
     LOG_INFO("msg dropped (BOLT queue full)");
-    break;
 #endif /* BOLT_ENABLE */
+    break;
 
   case INTERFACE_ELWB:
     if (xQueueSend(xQueueHandle_tx, &msg_buffer, 0)) {

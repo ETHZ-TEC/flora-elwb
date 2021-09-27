@@ -79,6 +79,7 @@ void vTask_post(void const * argument)
     uint16_t rcvd = 0,
              forwarded = 0;
     while (xQueueReceive(xQueueHandle_rx, (void*)&msg_buffer, 0)) {
+
       if (!process_message(&msg_buffer, false)) {
         forwarded++;
       }
@@ -110,7 +111,7 @@ void vTask_post(void const * argument)
     /* update RTC time */
     uint32_t rtctime  = rtc_get_unix_timestamp();
     uint32_t currtime = elwb_get_time_sec();
-    if (currtime > 1500000000 && rtctime != currtime) {
+    if ((currtime >= (MIN_VALID_GENTIME_US / 1e6)) && (rtctime != currtime)) {
       rtc_set_unix_timestamp(elwb_get_time_sec());
       LOG_INFO("RTC timestamp updated to %lu, was %lu", currtime, rtctime);
     }
