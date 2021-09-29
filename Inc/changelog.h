@@ -34,6 +34,10 @@
 
 /*
 
+v0.2.7
+- issue fixed with baseboard time request watchdog
+- use different eLWB settings on FlockLab
+
 v0.2.6
 - code refactoring, some adjustments to message handling and debug prints
 - timestamping fixed
