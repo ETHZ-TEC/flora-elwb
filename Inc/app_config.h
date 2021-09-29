@@ -62,7 +62,7 @@
 #define WRITE_NODE_ID                   0           /* 1 = force node ID overwrite, 0 = use ID stored in NV config if available */
 
 /* energy (low-power mode) */
-#if SWO_ENABLE || (!FLOCKLAB && (HOST_ID == NODE_ID))
+#if SWO_ENABLE || BASEBOARD
   #define LOW_POWER_MODE                LP_MODE_SLEEP  /* low-power mode to use between rounds during periods of inactivity */
   #define TIMESTAMP_USE_HS_TIMER        1              /* use hs_timer for timestamping events on the TREQ pin for better accuracy */
 #else /* SWO_ENABLE */
