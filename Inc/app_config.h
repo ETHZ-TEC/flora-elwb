@@ -118,7 +118,7 @@
   #define ELWB_CONF_N_TX                2    /* number of transmissions */
   #define ELWB_CONF_NUM_HOPS            6    /* network diameter in number of hops */
   #define ELWB_CONF_MAX_NODES           30
-  #define ELWB_CONF_SCHED_NODE_LIST     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 19, 20, 21, 22, 23, 24, 26, 27, 28, 31, 32  /* nodes to pre-register in the scheduler, also include HOST_ID here! */
+  #define ELWB_CONF_SCHED_NODE_LIST     1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 19, 20, 21, 22, 23, 24, 26, 27, 28, 31, 32  /* nodes to pre-register in the scheduler */
 #else /* FLOCKLAB */
   #define ELWB_CONF_N_TX                2    /* number of transmissions */
   #define ELWB_CONF_NUM_HOPS            3    /* network diameter in number of hops */
