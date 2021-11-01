@@ -46,6 +46,7 @@ static dpp_message_t      msg_buffer;
 static uint32_t           rcvd_msg_cnt     = 0;
 static event_msg_level_t  event_msg_level  = EVENT_MSG_LEVEL;
 static event_msg_target_t event_msg_target = EVENT_MSG_TARGET;
+static uint8_t            tx_pkt_dropped   = 0;
 
 #if BASEBOARD
 LIST_CREATE(pending_bb_cmds, sizeof(scheduled_cmd_t), BASEBOARD_CMD_QUEUE_SIZE);    // list to store the pending baseboard enable/disable commands
@@ -236,6 +237,7 @@ bool process_message(dpp_message_t* msg, bool rcvd_from_bolt)
     if (rcvd_from_bolt) {
       /* forward to network */
       if (!xQueueSend(xQueueHandle_tx, (uint8_t*)msg, 0)) {
+        tx_pkt_dropped++;
         LOG_ERROR("failed to insert msg into transmit queue");
       } else {
         LOG_VERBOSE("msg forwarded to network (type: %u, dest: %u)", msg->header.type, msg->header.target_id);
@@ -366,6 +368,7 @@ bool send_message(uint16_t recipient,
       LOG_VERBOSE("msg added to transmit queue");
       return true;
     }
+    tx_pkt_dropped++;
     LOG_ERROR("msg dropped (TX queue full)");
     break;
 
@@ -401,23 +404,24 @@ void send_node_info(void)
 void send_node_health(void)
 {
   static uint8_t  rx_dropped_last = 0;
+  static uint8_t  tx_dropped_last = 0;
   static uint16_t rx_cnt_last     = 0;
 
   const elwb_stats_t* stats = elwb_get_stats();
 
   /* collect ADC values */
-  msg_buffer.com_health.core_temp     = 0;    // TODO
-  msg_buffer.com_health.core_vcc      = 0;    // TODO
+  msg_buffer.com_health.core_temp     = DPP_MSG_INV_INT16;
+  msg_buffer.com_health.core_vcc      = DPP_MSG_INV_UINT16;
   msg_buffer.com_health.uptime        = LPTIMER_NOW_SEC();
   msg_buffer.com_health.msg_cnt       = rcvd_msg_cnt;
   rcvd_msg_cnt                        = 0;    /* reset value */
-  msg_buffer.com_health.stack         = 0;    // TODO get max stack size from FreeRTOS
+  msg_buffer.com_health.stack         = rtos_check_stack_usage();
 
   /* radio / communication stats */
-  msg_buffer.com_health.radio_snr     = 0;    // TODO
+  msg_buffer.com_health.radio_snr     = DPP_MSG_INV_UINT8;
   msg_buffer.com_health.radio_rssi    = -stats->rssi_avg;
-  msg_buffer.com_health.radio_tx_pwr  = 0;    // TODO
-  msg_buffer.com_health.radio_per     = 0;    // TODO
+  msg_buffer.com_health.radio_tx_pwr  = GLORIA_INTERFACE_POWER;
+  msg_buffer.com_health.radio_per     = 10000 - radio_get_prr(true);
   if (rx_cnt_last > stats->pkt_rcvd) {
     msg_buffer.com_health.rx_cnt      = (65535 - rx_cnt_last) + stats->pkt_rcvd;
   } else {
@@ -426,8 +430,9 @@ void send_node_health(void)
   rx_cnt_last                         = stats->pkt_rcvd;
   msg_buffer.com_health.tx_queue      = uxQueueMessagesWaiting(xQueueHandle_tx);
   msg_buffer.com_health.rx_queue      = uxQueueMessagesWaiting(xQueueHandle_rx);
-  msg_buffer.com_health.tx_dropped    = 0;    // TODO
+  msg_buffer.com_health.tx_dropped    = tx_pkt_dropped - tx_dropped_last;
   msg_buffer.com_health.rx_dropped    = stats->pkt_dropped - rx_dropped_last;
+  tx_dropped_last = tx_pkt_dropped;
   rx_dropped_last = stats->pkt_dropped;
 
   /* duty cycle */

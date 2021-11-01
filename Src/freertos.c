@@ -225,7 +225,8 @@ void rtos_reset_cpu_dc(void)
   active_time = 0;
 }
 
-void rtos_check_stack_usage(void)
+/* returns the highest watermark value */
+uint32_t rtos_check_stack_usage(void)
 {
   static unsigned long idleTaskStackWM = 0,
 #if BOLT_ENABLE
@@ -234,14 +235,9 @@ void rtos_check_stack_usage(void)
                        comTaskStackWM  = 0,
                        postTaskStackWM = 0;
 
-  /* check stack watermarks (store the used words) */
-  unsigned long idleSWM = configMINIMAL_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_idle));
-#if BOLT_ENABLE
-  unsigned long preSWM  = PRE_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_pre));
-#endif /* BOLT_ENABLE */
-  unsigned long comSWM  = COM_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_com));
-  unsigned long postSWM = POST_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_post));
+  uint32_t max_wm = 0;
 
+  unsigned long idleSWM = configMINIMAL_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_idle));
   if (idleSWM > idleTaskStackWM) {
     idleTaskStackWM = idleSWM;
     uint32_t usage = idleTaskStackWM * 100 / configMINIMAL_STACK_SIZE;
@@ -252,7 +248,10 @@ void rtos_check_stack_usage(void)
       LOG_INFO("stack watermark of idle task increased to %u%%", usage);
     }
   }
+  max_wm = idleTaskStackWM;
+
 #if BOLT_ENABLE
+  unsigned long preSWM  = PRE_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_pre));
   if (preSWM > preTaskStackWM) {
     preTaskStackWM = preSWM;
     uint32_t usage = preTaskStackWM * 100 / PRE_TASK_STACK_SIZE;
@@ -263,7 +262,12 @@ void rtos_check_stack_usage(void)
       LOG_INFO("stack watermark of pre task increased to %u%%", usage);
     }
   }
+  if (preTaskStackWM > max_wm) {
+    max_wm = preTaskStackWM;
+  }
 #endif /* BOLT_ENABLE */
+
+  unsigned long comSWM  = COM_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_com));
   if (comSWM > comTaskStackWM) {
     comTaskStackWM = comSWM;
     uint32_t usage = comTaskStackWM * 100 / COM_TASK_STACK_SIZE;
@@ -274,6 +278,11 @@ void rtos_check_stack_usage(void)
       LOG_INFO("stack watermark of com task increased to %u%%", usage);
     }
   }
+  if (comTaskStackWM > max_wm) {
+    max_wm = comTaskStackWM;
+  }
+
+  unsigned long postSWM = POST_TASK_STACK_SIZE - (uxTaskGetStackHighWaterMark(xTaskHandle_post));
   if (postSWM > postTaskStackWM) {
     postTaskStackWM = postSWM;
     uint32_t usage = postTaskStackWM * 100 / POST_TASK_STACK_SIZE;
@@ -284,6 +293,11 @@ void rtos_check_stack_usage(void)
       LOG_INFO("stack watermark of post task increased to %u%%", usage);
     }
   }
+  if (postTaskStackWM > max_wm) {
+    max_wm = postTaskStackWM;
+  }
+
+  return max_wm;
 }
 
 
