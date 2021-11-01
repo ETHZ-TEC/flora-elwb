@@ -41,7 +41,9 @@ if [[ $(pwd) = *"/Scripts"* ]]; then
   cd ..
 fi
 
-OBSIDS=$(sed -nE 's/^#define ELWB_CONF_SCHED_NODE_LIST\s*([0-9, ]+).*/\1/p' $APPCONFIG | sed s/,//g)
+SRCNODES=$(sed -nE 's/^\s*#define ELWB_CONF_SCHED_NODE_LIST\s*([0-9, ]+).*/\1/p' $APPCONFIG | sed s/,//g | xargs)
+HOSTNODE=$(sed -nE 's/^\s*#define HOST_ID\s*([0-9, ]+).*/\1/p' $APPCONFIG | head -1 | xargs)
+OBSIDS="$HOSTNODE $SRCNODES"
 SEDCMD=sed
 B64CMD=base64
 FLTOOLS=flocklab

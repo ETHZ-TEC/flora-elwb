@@ -103,8 +103,8 @@ void handle_treq(void)
     uint32_t curr_ticks       = (uint32_t)bolt_trq_hs_timestamp;
     uint32_t elapsed_hs_ticks = curr_ticks - htim2.Instance->CCR4;
     bolt_trq_hs_timestamp    -= elapsed_hs_ticks;
-    bolt_trq_timestamp       -= (elapsed_hs_ticks / (HS_TIMER_FREQUENCY / LPTIMER_SECOND));
-    LOG_VERBOSE("timestamp request received %lums ago", (elapsed_hs_ticks / (HS_TIMER_FREQUENCY / 1000)));
+    bolt_trq_timestamp       -= HS_TIMER_TICKS_TO_LPTIMER(elapsed_hs_ticks);
+    LOG_VERBOSE("timestamp request received %lums ago", HS_TIMER_TICKS_TO_MS(elapsed_hs_ticks));
 
     __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_CC4);      /* clear capture compare interrupt flag */
     __HAL_TIM_CLEAR_FLAG(&htim2, TIM_FLAG_CC4OF);    /* clear capture overrun flag */
@@ -248,16 +248,16 @@ void vTask_pre(void const * argument)
     }
 
   #if BASEBOARD_TREQ_WATCHDOG && BASEBOARD
-    static uint64_t last_treq = 0;
-    if (bolt_trq_timestamp > last_treq) {
-      last_treq = bolt_trq_timestamp;
+    static uint64_t last_treq = 0;      /* hs timestamp of last request */
+    if (bolt_trq_hs_timestamp > last_treq) {
+      last_treq = bolt_trq_hs_timestamp;
     }
     /* only use time request watchdog when baseboard is enabled */
     if (BASEBOARD_IS_ENABLED()) {
       bool powercycle = false;
       /* check when was the last time we got a time request */
-      if (((hs_timer_now() - last_treq) / HS_TIMER_FREQUENCY) > BASEBOARD_TREQ_WATCHDOG) {
-        last_treq = hs_timer_now();
+      if (HS_TIMER_TICKS_TO_S(hs_timer_now() - last_treq) > BASEBOARD_TREQ_WATCHDOG) {
+        last_treq  = hs_timer_now();
         powercycle = true;
       }
       if (powercycle) {

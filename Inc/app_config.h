@@ -42,7 +42,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                2           /* 0..99 */
-#define FW_VERSION_PATCH                6           /* 0..99 */
+#define FW_VERSION_PATCH                7           /* 0..99 */
 
 #define FLOCKLAB                        1           /* set to 1 to run on FlockLab */
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
@@ -62,7 +62,7 @@
 #define WRITE_NODE_ID                   0           /* 1 = force node ID overwrite, 0 = use ID stored in NV config if available */
 
 /* energy (low-power mode) */
-#if SWO_ENABLE || (!FLOCKLAB && (HOST_ID == NODE_ID))
+#if SWO_ENABLE || BASEBOARD
   #define LOW_POWER_MODE                LP_MODE_SLEEP  /* low-power mode to use between rounds during periods of inactivity */
   #define TIMESTAMP_USE_HS_TIMER        1              /* use hs_timer for timestamping events on the TREQ pin for better accuracy */
 #else /* SWO_ENABLE */
@@ -79,7 +79,7 @@
 #if FLOCKLAB
   #define NODE_HEALTH_MSG_PERIOD        15   /* in seconds */
 #else /* FLOCKLAB */
-  #define NODE_HEALTH_MSG_PERIOD        60   /* in seconds */
+  #define NODE_HEALTH_MSG_PERIOD        300  /* in seconds */
 #endif
 #define COLLECT_FLOODING_DATA           0
 #define PS_TIMESTAMP()                  elwb_get_time(0)
@@ -100,6 +100,7 @@
 
 /* Gloria config */
 #if FLOCKLAB
+  /* use different settings on FlockLab */
   #define GLORIA_INTERFACE_POWER        1    /* transmit power in dBm (max. value is 14 for most RF bands); keep non-zero init for binary patching!; config will be overwritten by binary patching! */
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
   #define GLORIA_INTERFACE_RF_BAND      46   /* 869.01 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
@@ -112,18 +113,25 @@
 /* eLWB config */
 #define ELWB_ENABLE                     1
 #define ELWB_CONF_NETWORK_ID            0x3333
-#define ELWB_CONF_N_TX                  2    /* number of transmissions */
-#define ELWB_CONF_NUM_HOPS              6    /* network diameter in number of hops */
+#if FLOCKLAB
+  /* use different settings on FlockLab */
+  #define ELWB_CONF_N_TX                2    /* number of transmissions */
+  #define ELWB_CONF_NUM_HOPS            6    /* network diameter in number of hops */
+  #define ELWB_CONF_MAX_NODES           30
+  #define ELWB_CONF_SCHED_NODE_LIST     1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 19, 20, 21, 22, 23, 24, 26, 27, 28, 31, 32  /* nodes to pre-register in the scheduler */
+#else /* FLOCKLAB */
+  #define ELWB_CONF_N_TX                2    /* number of transmissions */
+  #define ELWB_CONF_NUM_HOPS            3    /* network diameter in number of hops */
+  #define ELWB_CONF_MAX_NODES           10
+#endif /* FLOCKLAB */
 #define ELWB_CONF_T_GAP                 ELWB_MS_TO_TICKS(10)
 #define ELWB_CONF_SCHED_PERIOD          15
 #define ELWB_CONF_DATA_ACK              1
 #define ELWB_CONF_CONT_USE_HSTIMER      1
 #define ELWB_CONF_MAX_PAYLOAD_LEN       100
-#define ELWB_CONF_MAX_NODES             30
 #define ELWB_CONF_MAX_DATA_SLOTS        ELWB_CONF_MAX_NODES
 #define ELWB_ON_WAKEUP()                lpm_update_opmode(OP_MODE_EVT_WAKEUP)
 #define ELWB_CONF_T_PREPROCESS          ELWB_MS_TO_TICKS(50)
-#define ELWB_CONF_SCHED_NODE_LIST       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 19, 20, 21, 22, 23, 24, 26, 27, 28, 31, 32  /* nodes to pre-register in the scheduler, also include HOST_ID here! */
 
 /* baseboard */
 #if BASEBOARD
@@ -215,6 +223,10 @@
 
 #if BASEBOARD_TREQ_WATCHDOG > 0 && BASEBOARD_TREQ_WATCHDOG < 120
 #error "BASEBOARD_TREQ_WATCHDOG must be >= 120"
+#endif
+
+#if BASEBOARD_TREQ_WATCHDOG && !TIMESTAMP_USE_HS_TIMER
+#error "BASEBOARD_TREQ_WATCHDOG requires TIMESTAMP_USE_HS_TIMER"
 #endif
 
 #endif /* __APP_CONFIG_H */
