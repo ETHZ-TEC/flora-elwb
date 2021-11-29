@@ -92,7 +92,7 @@ void GPIO_PIN_3_Callback(void)
 }
 
 
-void handle_treq(void)
+static void handle_treq(void)
 {
   /* timer 2 capture compare flag 4 set? (COM_TREQ) */
   if (__HAL_TIM_GET_FLAG(&htim2, TIM_FLAG_CC4)) {
@@ -114,7 +114,7 @@ void handle_treq(void)
 }
 
 
-void update_time(void)
+static void update_time(void)
 {
   static uint64_t prev_trq_timestamp     = 0;
   static uint64_t prev_unix_timestamp_us = 0;
