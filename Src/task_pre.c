@@ -140,7 +140,7 @@ void update_time(void)
           average_drift_ppm = (average_drift_ppm + drift_ppm) / 2;
         }
         /* note: a negative drift means the local time runs too slow */
-        LOG_INFO("current drift compensation: %ldppm", average_drift_ppm);
+        LOG_VERBOSE("current drift compensation: %ldppm", average_drift_ppm);
         elwb_set_drift(average_drift_ppm);
 
       } else {
@@ -158,7 +158,7 @@ void update_time(void)
     int32_t delta = (int64_t)curr_time_us - (int64_t)new_time_us;
     if (delta > (TIMESTAMP_MAX_OFFSET_MS * 1000) || delta < -(TIMESTAMP_MAX_OFFSET_MS * 1000)) {
       elwb_sched_set_time(new_time_us);
-      LOG_INFO("timestamp adjusted to %llu", new_time_us);
+      LOG_VERBOSE("timestamp adjusted to %llu", new_time_us);
       EVENT_INFO(EVENT_SX1262_TIME_UPDATED, delta);
     } else {
       if (delta > 500) {
@@ -168,7 +168,7 @@ void update_time(void)
         /* speed up */
         elwb_set_drift(average_drift_ppm - 10);
       }
-      LOG_INFO("current time offset: %ldus", delta);
+      LOG_VERBOSE("current time offset: %ldus", delta);
     }
   #else
     /* adjust the network time */

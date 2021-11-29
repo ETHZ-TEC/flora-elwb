@@ -113,14 +113,14 @@ void vTask_post(void const * argument)
     uint32_t currtime = elwb_get_time_sec();
     if ((currtime >= (MIN_VALID_GENTIME_US / 1e6)) && (rtctime != currtime)) {
       rtc_set_unix_timestamp(elwb_get_time_sec());
-      LOG_INFO("RTC timestamp updated to %lu, was %lu", currtime, rtctime);
+      LOG_VERBOSE("RTC timestamp updated to %lu, was %lu", currtime, rtctime);
     }
 
     /* check for critical stack usage or overflow */
     rtos_check_stack_usage();
 
     /* print some stats */
-    LOG_INFO("CPU duty cycle:  %.2f%%    radio duty cycle (rx/tx):  %.2f%%/%.2f%%", (float)rtos_get_cpu_dc() / 100.0f, (float)radio_get_rx_dc() / 10000.0f, (float)radio_get_tx_dc() / 10000.0f);
+    LOG_VERBOSE("CPU duty cycle:  %.2f%%    radio duty cycle (rx/tx):  %.2f%%/%.2f%%", (float)rtos_get_cpu_dc() / 100.0f, (float)radio_get_rx_dc() / 10000.0f, (float)radio_get_tx_dc() / 10000.0f);
 
     /* flush the log print queue */
 #if !LOG_PRINT_IMMEDIATELY
