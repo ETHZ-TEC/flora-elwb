@@ -359,7 +359,7 @@ bool send_message(uint16_t recipient,
       LOG_VERBOSE("msg written to BOLT");
       return true;
     }
-    LOG_INFO("msg dropped (BOLT queue full)");
+    LOG_WARNING("msg dropped (BOLT queue full)");
 #endif /* BOLT_ENABLE */
     break;
 
@@ -386,7 +386,7 @@ void send_timestamp(uint64_t trq_timestamp)
 {
   msg_buffer.timestamp = elwb_get_time(&trq_timestamp);
   send_message(NODE_ID, DPP_MSG_TYPE_TIMESYNC, 0, 0, INTERFACE_BOLT);     /* always send to bolt */
-  LOG_INFO("timestamp %llu sent", msg_buffer.timestamp);
+  LOG_VERBOSE("timestamp %llu sent", msg_buffer.timestamp);
 }
 
 
@@ -395,7 +395,7 @@ void send_node_info(void)
   uint32_t cfg_field = 0;
   ps_compose_nodeinfo(&msg_buffer, config.rst_cnt, cfg_field);
 
-  LOG_INFO("node info msg generated");
+  LOG_VERBOSE("node info msg generated");
   /* note: host sends message towards BOLT */
   send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_NODE_INFO, 0, 0, (IS_HOST ? INTERFACE_BOLT : INTERFACE_ELWB));
 }
@@ -442,7 +442,7 @@ void send_node_health(void)
   msg_buffer.com_health.radio_tx_dc   = radio_get_tx_dc() / 100;
   radio_dc_counter_reset();
 
-  LOG_INFO("health msg generated");
+  LOG_VERBOSE("health msg generated");
 
   /* the host must send to BOLT, all other nodes to the network */
   send_message(DPP_DEVICE_ID_SINK, DPP_MSG_TYPE_COM_HEALTH, 0, 0, (IS_HOST ? INTERFACE_BOLT : INTERFACE_ELWB));
