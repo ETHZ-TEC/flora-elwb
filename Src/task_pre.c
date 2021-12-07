@@ -233,7 +233,7 @@ void vTask_pre(void const * argument)
       max_read_cnt--;
     }
     if (max_read_cnt < TRANSMIT_QUEUE_SIZE) {
-      LOG_INFO("%lu msg read from BOLT, %lu forwarded", TRANSMIT_QUEUE_SIZE - max_read_cnt, forwarded);
+      LOG_VERBOSE("%lu msg read from BOLT, %lu forwarded", TRANSMIT_QUEUE_SIZE - max_read_cnt, forwarded);
     }
 
     /* handle timestamp request (only if BOLT enabled) */
