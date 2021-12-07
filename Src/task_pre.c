@@ -49,6 +49,8 @@ extern TIM_HandleTypeDef htim2;
 #endif /* PRE_TASK_IND */
 
 
+#if BOLT_ENABLE
+
 /* Private variables ---------------------------------------------------------*/
 static uint64_t unix_timestamp_us     = 0;
 static uint64_t bolt_trq_timestamp    = 0;
@@ -186,6 +188,8 @@ static void update_time(void)
   timestamp_updated   = false;
 }
 
+#endif /* BOLT_ENABLE */
+
 
 /* pre communication round task */
 void vTask_pre(void const * argument)
@@ -197,7 +201,9 @@ void vTask_pre(void const * argument)
     FATAL_ERROR("invalid message size config");
   }
 
+#if BOLT_ENABLE
   init_time();
+#endif /* BOLT_ENABLE */
 
 #if TIMESTAMP_USE_HS_TIMER
   /* configure input capture for TIM2_CH4 (PA3) */
@@ -218,7 +224,7 @@ void vTask_pre(void const * argument)
     uint32_t max_read_cnt = TRANSMIT_QUEUE_SIZE,
              forwarded = 0;
     /* only read as long as there is still space in the transmit queue */
-    while (max_read_cnt && uxQueueSpacesAvailable(xQueueHandle_tx) && BOLT_DATA_AVAILABLE) {
+    while (max_read_cnt && (((int32_t)uxQueueSpacesAvailable(xQueueHandle_tx) - TRANSMIT_QUEUE_MARGIN) > 0) && BOLT_DATA_AVAILABLE) {
       uint32_t len = bolt_read(bolt_read_buffer);
       if (!len) {
         /* not supposed to happen -> try to initialize BOLT */
