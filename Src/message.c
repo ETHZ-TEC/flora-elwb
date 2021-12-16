@@ -197,7 +197,7 @@ bool process_message(dpp_message_t* msg, bool rcvd_from_bolt)
       if (successful) {
         LOG_INFO("cmd 0x%x processed", msg->cmd.type & 0xff);
         EVENT_INFO(EVENT_SX1262_CMD_EXECUTED, msg->cmd.type & 0xff);
-      } else {
+      } else if ( (msg->cmd.type >> 8) == DPP_COMPONENT_ID_SX1262) {
         EVENT_WARNING(EVENT_SX1262_INV_CMD, msg->cmd.type & 0xff);
       }
 
