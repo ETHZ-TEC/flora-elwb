@@ -42,7 +42,7 @@
 #define FW_NAME                         "DPP2eLWB"  /* max. 8 chars */
 #define FW_VERSION_MAJOR                0           /* 0..6 */
 #define FW_VERSION_MINOR                2           /* 0..99 */
-#define FW_VERSION_PATCH                7           /* 0..99 */
+#define FW_VERSION_PATCH                8           /* 0..99 */
 
 #define FLOCKLAB                        1           /* set to 1 to run on FlockLab */
 #define BASEBOARD                       0           /* set to 1 if the comboard will be installed on a baseboard */
@@ -84,14 +84,16 @@
 #define COLLECT_FLOODING_DATA           0
 #define PS_TIMESTAMP()                  elwb_get_time(0)
 #define MIN_VALID_GENTIME_US            1e15    /* smallest valid generation time (smaller values will be replace with the current timestamp on the host node) */
+#define EVENT_MSG_TARGET                EVENT_MSG_TARGET_NETWORK
 
 /* memory */
 #define PRE_TASK_STACK_SIZE             256                             /* in # words of 4 bytes */
 #define COM_TASK_STACK_SIZE             400                             /* in # words of 4 bytes */
 #define POST_TASK_STACK_SIZE            300                             /* in # words of 4 bytes */
 #define STACK_WARNING_THRESHOLD         80                              /* a warning will be generated once the stack usage of a task exceeds this value (in percent) */
-#define TRANSMIT_QUEUE_SIZE             20                              /* #messages */
+#define TRANSMIT_QUEUE_SIZE             25                              /* #messages */
 #define RECEIVE_QUEUE_SIZE              ELWB_CONF_MAX_DATA_SLOTS        /* #messages */
+#define TRANSMIT_QUEUE_MARGIN           5                               /* safety margin (spaces to keep empty in the TX queue) */
 #define BASEBOARD_CMD_QUEUE_SIZE        10
 
 /* non-volatile config storage */
@@ -107,7 +109,7 @@
 #else
   #define GLORIA_INTERFACE_POWER        14   /* transmit power in dBm (max. value is 14 for most RF bands) */
   #define GLORIA_INTERFACE_MODULATION   10   /* 7 = LoRa SF5, 10 = FSK 250kbit/s (see radio_constants.c for details); config will be overwritten by binary patching! */
-  #define GLORIA_INTERFACE_RF_BAND      43   /* 869.46 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
+  #define GLORIA_INTERFACE_RF_BAND      43   /* 868.43 MHz (see table in radio_constants.c for options); config will be overwritten by binary patching! */
 #endif /* FLOCKLAB */
 
 /* eLWB config */
@@ -120,7 +122,7 @@
   #define ELWB_CONF_MAX_NODES           30
   #define ELWB_CONF_SCHED_NODE_LIST     1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 16, 19, 20, 21, 22, 23, 24, 26, 27, 28, 31, 32  /* nodes to pre-register in the scheduler */
 #else /* FLOCKLAB */
-  #define ELWB_CONF_N_TX                2    /* number of transmissions */
+  #define ELWB_CONF_N_TX                3    /* number of transmissions */
   #define ELWB_CONF_NUM_HOPS            3    /* network diameter in number of hops */
   #define ELWB_CONF_MAX_NODES           10
 #endif /* FLOCKLAB */
