@@ -45,7 +45,7 @@ extern uint32_t health_msg_period;
 static dpp_message_t      msg_buffer;
 static uint32_t           rcvd_msg_cnt     = 0;
 static event_msg_level_t  event_msg_level  = EVENT_MSG_LEVEL;
-static event_msg_target_t event_msg_target = EVENT_MSG_TARGET;
+static event_msg_target_t event_msg_target = EVENT_MSG_TARGET_NONE;
 static uint8_t            tx_pkt_dropped   = 0;
 
 #if BASEBOARD

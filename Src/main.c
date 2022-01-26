@@ -186,6 +186,18 @@ int main(void)
   load_config();
 #endif /* FLOCKLAB */
 
+  /* set event target depending on role */
+  if (EVENT_MSG_TARGET == EVENT_MSG_TARGET_NETWORK)
+  {
+    /* host should never send events to the network */
+    set_event_target(IS_HOST ? EVENT_MSG_TARGET_BOLT : EVENT_MSG_TARGET_NETWORK);
+  }
+  else
+  {
+    set_event_target(EVENT_MSG_TARGET);
+  }
+
+  /* initialize system drivers */
   system_init();
 
   /* initialize state machine for handling low-power modes */
