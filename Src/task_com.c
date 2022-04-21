@@ -129,14 +129,14 @@ void vTask_com(void const * argument)
   /* load the UNIX timestamp from the RTC, convert it to microseconds and add the static startup delay */
   uint32_t currtime;
 #if !FLOCKLAB
-  currtime = rtc_get_unix_timestamp();
+  currtime = rtc_get_unix_timestamp() + 1;    /* eLWB will start in ~1 second */
   LOG_INFO("timestamp %lu loaded from the RTC", currtime);
 #else /* FLOCKLAB */
   currtime = BUILD_TIME;
   LOG_INFO("using build timestamp %lu", BUILD_TIME);
   rtc_set_unix_timestamp(BUILD_TIME);
 #endif /* FLOCKLAB */
-  elwb_sched_set_time((uint64_t)currtime * 1000000 + ELWB_CONF_STARTUP_DELAY * 1000);
+  elwb_sched_set_time((uint64_t)currtime * 1000000);
 
   /* make sure the radio is awake */
   radio_wakeup();
@@ -197,6 +197,8 @@ void vTask_com(void const * argument)
     health_msg_period
   );
 #endif /* COLLECT_FLOODING_DATA */
+
+  while (lptimer_now() < LPTIMER_SECOND);   /* wait until 1s has elapsed since MCU startup */
 
   /* start eLWB */
   elwb_start();

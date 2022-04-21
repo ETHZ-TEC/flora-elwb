@@ -91,7 +91,7 @@
 #define COM_TASK_STACK_SIZE             400                             /* in # words of 4 bytes */
 #define POST_TASK_STACK_SIZE            300                             /* in # words of 4 bytes */
 #define STACK_WARNING_THRESHOLD         80                              /* a warning will be generated once the stack usage of a task exceeds this value (in percent) */
-#define TRANSMIT_QUEUE_SIZE             25                              /* #messages */
+#define TRANSMIT_QUEUE_SIZE             10                              /* #messages */
 #define RECEIVE_QUEUE_SIZE              ELWB_CONF_MAX_DATA_SLOTS        /* #messages */
 #define TRANSMIT_QUEUE_MARGIN           5                               /* safety margin (spaces to keep empty in the TX queue) */
 #define BASEBOARD_CMD_QUEUE_SIZE        10
